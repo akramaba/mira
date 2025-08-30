@@ -13,4 +13,6 @@ void mk_free(void* ptr);
 
 void* mk_memset(void* ptr, int value, size_t num);
 
+void* mk_memcpy(void* dest, const void* src, size_t num);
+
 #endif

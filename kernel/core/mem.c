@@ -30,3 +30,13 @@ void* mk_memset(void* ptr, int value, size_t num) {
     }
     return ptr;
 }
+
+// Mira Kernel Memory Copy
+void* mk_memcpy(void* dest, const void* src, size_t num) {
+    unsigned char* d = (unsigned char*)dest;
+    const unsigned char* s = (const unsigned char*)src;
+    for (size_t i = 0; i < num; i++) {
+        d[i] = s[i];
+    }
+    return dest;
+}

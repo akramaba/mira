@@ -1,9 +1,10 @@
 #include "../inc/scheduler.h"
 #include "../inc/util.h"
+#include "../inc/syscalls.h"
 #include "../inc/gdt.h"
 
 static int mk_scheduler_current_task = -1;
-static mk_syscall_registers mk_scheduler_task_contexts[MK_TASKS_MAX]; // Array to hold task contexts
+static mk_cpu_state_t mk_scheduler_task_contexts[MK_TASKS_MAX]; // Array to hold task contexts
 
 // Mira Kernel Scheduler Get Next Task
 int mk_scheduler_get_next_task() {
@@ -18,82 +19,61 @@ int mk_scheduler_get_next_task() {
     return mk_scheduler_current_task;
 }
 
-// Mira Kernel Task Scheduler Step
-void mk_scheduler_step() {
-    // 1. Save registers of the current task (only RSP needed for now)
-    uintptr_t saved_rsp;
-    __asm__ volatile ("movq %%rsp, %0" : "=r" (saved_rsp));
+// Mira Kernel Task Scheduler
+// This function decides which task to run next. It saves the state of the current
+// task and returns a pointer to the state of the next task.
+mk_cpu_state_t* mk_schedule(mk_cpu_state_t* regs) {
+    // 1. Save registers of the current task
     int old_task = mk_scheduler_current_task;
     if (old_task >= 0) {
-        mk_scheduler_task_contexts[old_task].rsp = saved_rsp;
+        // * Use Mira's memcpy to avoid compiler optimization issues
+        mk_memcpy(&mk_scheduler_task_contexts[old_task], regs, sizeof(mk_cpu_state_t));
     }
 
-    // 2. Get next task index
-    int next = mk_scheduler_get_next_task();
-    if (next < 0) {
-        return;
+    // 2. Get the next task to run
+    int next_task_index = mk_scheduler_get_next_task();
+    if (next_task_index < 0) {
+        return regs; // It's the only task, keep it running
     }
 
-    // 3. Restore next task's RSP (kernel stack) and prepare for switch
-    uintptr_t new_rsp = mk_scheduler_task_contexts[next].rsp;
-
-    // If the new task is just starting, initialize its stack/frame
-    // User mode tasks need a specific stack setup
     mk_task** all_tasks = mk_get_tasks();
-    mk_task* next_task = all_tasks[next];
-    if (new_rsp == 0) {
+    mk_task* next_task = all_tasks[next_task_index];
+    
+    // 3. If the next task has never run before, its context will be empty.
+    // We must initialize its register state for the first time.
+    if (mk_scheduler_task_contexts[next_task_index].rip == 0) {
         if (next_task->mode == MK_TASKS_USER_MODE) {
-            uintptr_t kernel_top = next_task->stack_ptr;
-            uint64_t *stack = (uint64_t*)kernel_top;
-
-            // (a) push SS
-            *--stack = MK_USER_DATA_SELECTOR;
-
-            // (b) push RSP (user stack pointer)
-            *--stack = (uint64_t)next_task->user_stack_ptr;
-
-            // (c) push RFLAGS (0x202 sets IF=1)
-            *--stack = 0x202;
-
-            // (d) push CS
-            *--stack = MK_USER_CODE_SELECTOR;
-
-            // (e) push RIP
-            *--stack = (uint64_t)next_task->base;
-
-            mk_scheduler_task_contexts[next].rsp = (uintptr_t)stack;
-            new_rsp = (uintptr_t)stack;
+            mk_scheduler_task_contexts[next_task_index].rip = (uintptr_t)next_task->base;
+            mk_scheduler_task_contexts[next_task_index].rsp = (uintptr_t)next_task->user_stack_ptr;
+            mk_scheduler_task_contexts[next_task_index].cs = MK_USER_CODE_SELECTOR;
+            mk_scheduler_task_contexts[next_task_index].ss = MK_USER_DATA_SELECTOR;
+            mk_scheduler_task_contexts[next_task_index].rflags = 0x202;
         } else {
-            // First time running a kernel-mode task: initialize its stack/frame
-            new_rsp = (uintptr_t)next_task->stack_ptr;
-            mk_scheduler_task_contexts[next].rsp = new_rsp;
+            // Similar setup for kernel mode, but using kernel stack pointers and selectors
+            mk_scheduler_task_contexts[next_task_index].rip = (uintptr_t)next_task->base;
+            mk_scheduler_task_contexts[next_task_index].rsp = (uintptr_t)next_task->stack_ptr;
+            mk_scheduler_task_contexts[next_task_index].cs = MK_KERNEL_CODE_SELECTOR;
+            mk_scheduler_task_contexts[next_task_index].ss = MK_KERNEL_DATA_SELECTOR;
+            mk_scheduler_task_contexts[next_task_index].rflags = 0x202;
         }
     }
 
-    // Update current task index for the next interrupt
-    mk_scheduler_current_task = next;
-
-    // Install the next task’s kernel stack in the TSS 
-    // This is necessary for ring transitions
+    // 4. Install the next task’s kernel stack in the TSS.
+    // This is necessary for ring transitions.
     extern mk_tss_t mk_tss;
     mk_tss.rsp0 = (uint64_t)next_task->stack_ptr;
 
-    // 5. Load the task’s RSP and jump/iretq
-    if (next_task->mode == MK_TASKS_KERNEL_MODE) {
-        __asm__ volatile (
-            "movq %0, %%rsp\n\t"
-            "jmp  *%1\n\t"
-            :
-            : "r"(new_rsp), "r"(next_task->base)
-            : "memory"
-        );
-    } else {
-        __asm__ volatile (
-            "movq %0, %%rsp\n\t"
-            "iretq\n\t"
-            :
-            : "r"(new_rsp)
-            : "memory"
-        );
+    // 5. Return a pointer to the next task's saved context. The interrupt
+    // handler will use this to perform the actual context switch.
+    return &mk_scheduler_task_contexts[next_task_index];
+}
+
+// Mira Kernel Scheduler Get Current Task
+mk_task* mk_scheduler_get_current_task() {
+    if (mk_scheduler_current_task < 0) {
+        return NULL;
     }
+
+    mk_task** all_tasks = mk_get_tasks();
+    return all_tasks[mk_scheduler_current_task];
 }

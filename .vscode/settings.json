@@ -27,6 +27,7 @@
         "vga.h": "c",
         "vbe.h": "c",
         "win.h": "c",
-        "mouse.h": "c"
+        "mouse.h": "c",
+        "dbg.h": "c"
     }
 }

@@ -1,8 +1,27 @@
 #include "../inc/pit.h"
 #include "../inc/idt.h"
+#include "../inc/mouse.h"
 #include "../inc/scheduler.h"
+#include "../inc/vbe.h"
+#include "../inc/syscalls.h"
+#include "../inc/dbg.h"
 
 static uint64_t mk_pit_ticks = 0;
+
+// Mira Kernel C-Level PIT Handler
+// This function is called from the assembly stub in order
+// to return the context of the next task to run.
+mk_syscall_registers* mk_pit_c_handler(mk_syscall_registers* regs) {
+    // Acknowledge the interrupt
+    mk_util_outb(0x20, 0x20);
+
+    // Variable used for timing functions (e.g., sleep)
+    // Ideally, the PIT should tick at one millisecond intervals
+    mk_pit_ticks++;
+    
+    // Call the scheduler to get the context of the next task to run
+    return mk_schedule(regs);
+}
 
 // Mira Kernel PIT Initialization
 void mk_pit_init() {
@@ -35,16 +54,55 @@ void mk_pit_init() {
 }
 
 // Mira Kernel PIT Handler
-void mk_pit_handler() {
-    // Variable used for timing functions (e.g., sleep)
-    // Ideally, the PIT should tick at one millisecond intervals
-    mk_pit_ticks++;
+// This naked function is the raw entry point for the interrupt.
+// It saves the current task's state, calls the C handler, and then
+// restores the state of the next task for the context switch.
+__attribute__((naked)) void mk_pit_handler() {
+    __asm__ volatile (
+        // Save all general-purpose registers
+        "pushq %rax\n\t"
+        "pushq %rbx\n\t"
+        "pushq %rcx\n\t"
+        "pushq %rdx\n\t"
+        "pushq %rsi\n\t"
+        "pushq %rdi\n\t"
+        "pushq %rbp\n\t"
+        "pushq %r8\n\t"
+        "pushq %r9\n\t"
+        "pushq %r10\n\t"
+        "pushq %r11\n\t"
+        "pushq %r12\n\t"
+        "pushq %r13\n\t"
+        "pushq %r14\n\t"
+        "pushq %r15\n\t"
 
-    // Step the round-robin scheduler to run and switch tasks
-    mk_scheduler_step();
+        // Call the C handler for getting the next task's context
+        "movq %rsp, %rdi\n\t"
+        "call mk_pit_c_handler\n\t"
 
-    // Call the post handler to restore registers and return
-    mk_idt_post_handler();
+        // We switch stacks by moving this pointer into RSP.
+        "movq %rax, %rsp\n\t"
+
+        // Restore all registers from the new stack
+        "popq %r15\n\t"
+        "popq %r14\n\t"
+        "popq %r13\n\t"
+        "popq %r12\n\t"
+        "popq %r11\n\t"
+        "popq %r10\n\t"
+        "popq %r9\n\t"
+        "popq %r8\n\t"
+        "popq %rbp\n\t"
+        "popq %rdi\n\t"
+        "popq %rsi\n\t"
+        "popq %rdx\n\t"
+        "popq %rcx\n\t"
+        "popq %rbx\n\t"
+        "popq %rax\n\t"
+
+        // Return from interrupt
+        "iretq\n\t"
+    );
 }
 
 // Mira Kernel Get PIT Tick Count

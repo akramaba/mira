@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Debug command for running the Mira OS image file in QEMU
-/mnt/d/x/qemu/qemu-system-x86_64.exe -drive file=./build/mira.img,format=raw -audiodev dsound,id=speaker -machine pcspk-audiodev=speaker
+/mnt/d/x/qemu/qemu-system-x86_64.exe -drive file=./build/mira.img,format=raw -audiodev dsound,id=speaker -machine pcspk-audiodev=speaker -serial tcp::6472,server,nowait
 
 # Keyboard Parameters
 # -device usb-kbd

@@ -4,6 +4,7 @@
 #include "inc/gdt.h"
 #include "inc/assets.h"
 #include "inc/vbe.h"
+#include "inc/dbg.h"
 
 extern int ms_entry();
 
@@ -15,11 +16,17 @@ int mk_entry() {
     mk_keyboard_init();
     mk_mouse_init();
     mk_vbe_init();
+    mk_dbg_init();
 
     // Create a task for the Mira Shell
     // We use a function pointer directly
-    mk_task *task = mk_create_task_from_function(ms_entry, "Mira Shell");
-    mk_execute_task(task);
+    mk_task *shell_task = mk_create_task_from_function(ms_entry, "Mira Shell");
+    mk_execute_task(shell_task);
+
+    // Create and execute the debug task
+    mk_task *dbg_task = mk_create_task_from_function(mk_dbg_entry, "Mira Debugger Driver");
+    dbg_task->mode = MK_TASKS_KERNEL_MODE;
+    mk_execute_task(dbg_task);
 
     // Initialize the PIT
     // This is separated from the other initializations
