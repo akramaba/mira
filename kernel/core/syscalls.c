@@ -2,13 +2,17 @@
 #include "../inc/keyboard.h"
 #include "../inc/mouse.h"
 #include "../inc/win.h"
+#include "../inc/tasks.h"
+#include "../inc/dbg.h"
 #include "../inc/util.h"
+#include "../inc/mem.h"
 
 // Mira System Call Print Function
 long mk_syscall_print(mk_syscall_args *args) {
     const char* string = (const char*)args->arg1;
     
     mk_util_print(string);
+    mk_dbg_print(string);
 
     return 0;
 }
@@ -71,6 +75,25 @@ long mk_syscall_update_window(mk_syscall_args *args) {
     return 0;
 }
 
+// Mira System Call Execute Task
+long mk_syscall_execute_task(mk_syscall_args *args) {
+    int (*entry_point)(void) = (int (*)(void))args->arg1;
+    const char* name = (const char*)args->arg2;
+
+    mk_task* task = mk_create_task_from_function(entry_point, name);
+    mk_execute_task(task);
+
+    return (long)task->id;
+}
+
+// Mira System Call Allocate Memory
+long mk_syscall_malloc(mk_syscall_args *args) {
+    size_t size = (size_t)args->arg1;
+    void* ptr = mk_malloc(size);
+    
+    return (long)ptr;
+}
+
 // Mira System Call Function Definition & Table
 typedef long (*mk_syscall_func)(mk_syscall_args *);
 const mk_syscall_func syscall_table[] = {
@@ -80,6 +103,8 @@ const mk_syscall_func syscall_table[] = {
     mk_syscall_get_mouse_state, // Get mouse state
     mk_syscall_create_window, // Create a new window
     mk_syscall_update_window, // Update an existing window
+    mk_syscall_execute_task, // Execute a new task
+    mk_syscall_malloc, // Allocate memory
 };
 
 // Mira System Call Dispatcher
@@ -111,12 +136,13 @@ __attribute__((naked)) void mk_syscall_handler(void) {
         "pushq %r9\n\t"
         "pushq %r10\n\t"
 
-        "mov 64(%rsp), %rdi\n\t" 
+        // * 8/31/25: Fixed alignments for the last three arguments.
+        "mov 64(%rsp), %rdi\n\t"
         "mov 24(%rsp), %rsi\n\t"
         "mov 32(%rsp), %rdx\n\t"
-        "mov 0(%rsp), %rcx\n\t"
-        "mov 16(%rsp), %r8\n\t"
-        "mov 8(%rsp), %r9\n\t" 
+        "mov 40(%rsp), %rcx\n\t"
+        "mov 48(%rsp), %r8\n\t"
+        "mov 16(%rsp), %r9\n\t"
 
         "call mk_syscall_dispatch\n\t" // Call the syscall dispatcher
 

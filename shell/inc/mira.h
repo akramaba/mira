@@ -2,6 +2,7 @@
 #define MIRA_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 // User-space definition of the mouse state structure.
 // ! Must match the kernel's mk_mouse_state_t.
@@ -92,6 +93,36 @@ static inline int mira_update_window(int window_id, uint32_t* framebuffer) {
     );
 
     return (int)ret;
+}
+
+// Mira Execute Task Function
+static inline int mira_execute_task(int (*entry_point)(void), const char* name) {
+    uint64_t ret = 0;
+    
+    __asm__ volatile (
+        "mov $6, %%rax\n\t"
+        "int $0x80\n\t"
+        : "=a"(ret)
+        : "D"(entry_point), "S"(name)
+        : "memory"
+    );
+
+    return (int)ret;
+}
+
+// Mira Memory Allocate Function
+void* mira_malloc(size_t size) {
+    uint64_t ret_ptr;
+    
+    __asm__ volatile (
+        "mov $7, %%rax\n\t"
+        "int $0x80\n\t"
+        : "=a"(ret_ptr)
+        : "D"(size)
+        : "memory"
+    );
+
+    return (void*)ret_ptr;
 }
 
 #endif

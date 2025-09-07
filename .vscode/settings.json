@@ -28,6 +28,8 @@
         "vbe.h": "c",
         "win.h": "c",
         "mouse.h": "c",
-        "dbg.h": "c"
+        "dbg.h": "c",
+        "cstdlib": "c",
+        "mira.h": "c"
     }
 }
