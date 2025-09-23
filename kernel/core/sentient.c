@@ -10,6 +10,14 @@ static volatile uint64_t mk_exception_count = 0;
 // This is the core of the sensor (in this case, a nociceptor).
 __attribute__((naked)) void mk_sentient_page_fault_handler(void) {
     __asm__ volatile (
+        // Kernel safety guard.
+        // ? If the faulting code was in the kernel (CS = 0x08), this is a real kernel bug.
+        // ? Do not return. Jump to the standard panic handler instead.
+        // ? The CS selector is at RSP+16 in the interrupt frame pushed by the CPU.
+        "movw 16(%%rsp), %%ax\n\t"
+        "cmpw $0x08, %%ax\n\t"
+        "je jmp_to_panic\n\t"
+
         // Increment the global counter.
         // ? Locks are used to ensure atomicity in multi-core systems.
         // ? You'll also find it in mk_sentient_get_and_reset_exception_count.
@@ -30,6 +38,12 @@ __attribute__((naked)) void mk_sentient_page_fault_handler(void) {
         :
         : "memory"
     );
+
+    // TODO: Combine the above asm block with the below to avoid multiple asm blocks.
+    __asm__ volatile (
+        "jmp_to_panic:\n\t"
+        "jmp mk_idt_exception_handler\n\t"
+    );
 }
 
 // Mira Kernel Sentient Get and Reset Exception Count
@@ -40,6 +54,9 @@ uint64_t mk_sentient_get_and_reset_exception_count(void) {
     uint64_t value = 0;
 
     __asm__ volatile (
+        // * The 'lock' prefix ensures this operation is indivisible,
+        // * even on multi-core systems. The 'xchg' instruction swaps
+        // * the register and memory location in one atomic step.
         "lock xchgq %0, %1"
         : "+m"(mk_exception_count), "=r"(value)
         : "1"(value)
