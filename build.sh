@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# Check for 'sentient' build flag
+# Example usage: ./build.sh sentient or ./build.sh control
+BUILD_TYPE=$1
+export CFLAGS_EXTRA=""
+if [ "$BUILD_TYPE" = "sentient" ]; then
+    export CFLAGS_EXTRA="-DCONFIG_SENTIENT=1"
+fi
+
 rm -f build/mira.img
 
 (make -C boot)
