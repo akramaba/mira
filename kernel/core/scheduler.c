@@ -5,6 +5,7 @@
 
 static int mk_scheduler_current_task = -1;
 static mk_cpu_state_t mk_scheduler_task_contexts[MK_TASKS_MAX]; // Array to hold task contexts
+static mk_task* mk_last_user_task_ran = NULL; // For Sentient: Track the latest user-mode task
 
 // Mira Kernel Scheduler Get Next Task
 int mk_scheduler_get_next_task() {
@@ -13,10 +14,20 @@ int mk_scheduler_get_next_task() {
         return -1;
     }
 
-    // Round-robin scheduler where we just cycle through the tasks
-    mk_scheduler_current_task = (mk_scheduler_current_task + 1) % task_count;
+    mk_task** all_tasks = mk_get_tasks();
+    int current_id = mk_scheduler_current_task;
 
-    return mk_scheduler_current_task;
+    // Start searching from the next task in the list
+    for (int i = 0; i < task_count; i++) {
+        current_id = (current_id + 1) % task_count;
+        // * Now able to not just be a round-robin scheduler, but also skip tasks that are not runnable (ex. stopped by Sentient!)
+        if (all_tasks[current_id] && all_tasks[current_id]->status != MK_TASKS_NOT_RUNNING) {
+             mk_scheduler_current_task = current_id;
+             return mk_scheduler_current_task;
+        }
+    }
+
+    return -1; // No runnable tasks found
 }
 
 // Mira Kernel Task Scheduler
@@ -24,10 +35,17 @@ int mk_scheduler_get_next_task() {
 // task and returns a pointer to the state of the next task.
 mk_cpu_state_t* mk_schedule(mk_cpu_state_t* regs) {
     // 1. Save registers of the current task
-    int old_task = mk_scheduler_current_task;
-    if (old_task >= 0) {
+    int old_task_id = mk_scheduler_current_task;
+    if (old_task_id >= 0) {
+        // ? Needed for Sentient: Track the last user-mode task that ran
+        // ? in case we need to terminate it for too many exceptions.
+        mk_task* old_task_ptr = mk_get_tasks()[old_task_id];
+        if (old_task_ptr && old_task_ptr->mode == MK_TASKS_USER_MODE) {
+            mk_last_user_task_ran = old_task_ptr;
+        }
+
         // * Use Mira's memcpy to avoid compiler optimization issues
-        mk_memcpy(&mk_scheduler_task_contexts[old_task], regs, sizeof(mk_cpu_state_t));
+        mk_memcpy(&mk_scheduler_task_contexts[old_task_id], regs, sizeof(mk_cpu_state_t));
     }
 
     // 2. Get the next task to run
@@ -76,4 +94,9 @@ mk_task* mk_scheduler_get_current_task() {
 
     mk_task** all_tasks = mk_get_tasks();
     return all_tasks[mk_scheduler_current_task];
+}
+
+// Mira Kernel Scheduler Get Last User Task
+mk_task* mk_scheduler_get_last_user_task() {
+    return mk_last_user_task_ran;
 }

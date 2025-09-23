@@ -30,6 +30,7 @@
         "mouse.h": "c",
         "dbg.h": "c",
         "cstdlib": "c",
-        "mira.h": "c"
+        "mira.h": "c",
+        "sentient.h": "c"
     }
 }

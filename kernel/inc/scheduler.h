@@ -27,4 +27,7 @@ mk_cpu_state_t* mk_schedule(mk_cpu_state_t* regs);
 // Function to get the current task
 mk_task* mk_scheduler_get_current_task();
 
+// Function to get the last user-mode task that was executed
+mk_task* mk_scheduler_get_last_user_task();
+
 #endif

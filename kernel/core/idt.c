@@ -2,6 +2,7 @@
 #include "../inc/scheduler.h"
 #include "../inc/dbg.h"
 #include "../inc/vbe.h"
+#include "../inc/sentient.h"
 
 #define MK_IDT_ENTRIES 256
 mk_idt_entry_t mk_idt[MK_IDT_ENTRIES];
@@ -117,6 +118,9 @@ void mk_idt_init() {
 
     // Set the IDT entry for the PIT timer interrupt (0x20)
     mk_idt_set_entry(&mk_idt[0x20], (uintptr_t)mk_pit_handler, MK_CODE_SELECTOR, 0x8E); // Ring 0
+
+    // Set the IDT entry for the Page Fault interrupt (0x0E) for the Sentient system
+    mk_idt_set_entry(&mk_idt[0x0E], (uintptr_t)mk_sentient_page_fault_handler, MK_CODE_SELECTOR, 0x8E); // Ring 0
 
     // Load the IDT
     mk_idt_load(&mk_idt_ptr);
