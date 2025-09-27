@@ -5,6 +5,7 @@
 #include "inc/assets.h"
 #include "inc/vbe.h"
 #include "inc/sentient.h"
+#include "../inc/adaptive.h"
 #include "inc/dbg.h"
 
 extern int ms_entry();
@@ -17,6 +18,10 @@ int mk_entry() {
     mk_keyboard_init();
     mk_mouse_init();
     mk_vbe_init();
+#ifdef CONFIG_SENTIENT
+    mk_sentient_init();
+    mk_adaptive_init();
+#endif
     mk_dbg_init();
 
     // Create a task for the Mira Shell
@@ -35,6 +40,18 @@ int mk_entry() {
     mk_task *profiler_task = mk_create_task_from_function(mk_profiler_entry, "Mira Profiler");
     profiler_task->mode = MK_TASKS_KERNEL_MODE;
     mk_execute_task(profiler_task);
+
+    // Create and execute the Apoptosis Worker task.
+    // This is a kernel-mode task responsible for cleaning up terminated processes.
+    mk_task *apoptosis_task = mk_create_task_from_function(mk_apoptosis_worker_entry, "Apoptosis Worker");
+    apoptosis_task->mode = MK_TASKS_KERNEL_MODE;
+    mk_execute_task(apoptosis_task);
+
+    // Create and execute the Adaptive Profiler task
+    // This profiler is an adaptive detection system for Sentient.
+    mk_task *adaptive_task = mk_create_task_from_function(mk_adaptive_profiler_entry, "Adaptive Profiler");
+    adaptive_task->mode = MK_TASKS_KERNEL_MODE;
+    mk_execute_task(adaptive_task);
 
     // Initialize the PIT
     // This is separated from the other initializations

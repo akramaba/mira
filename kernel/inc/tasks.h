@@ -8,6 +8,24 @@
 #define MK_TASKS_RUNNING 1
 #define MK_TASKS_KERNEL_MODE 0
 #define MK_TASKS_USER_MODE 1
+#define MK_TASKS_ZOMBIE 2 // Quarantined by Sentient
+
+// State per task for the emergency fast-path
+typedef struct {
+    // Timestamp of the last exception for this task, in milliseconds since boot.
+    uint64_t last_exception_tick_ms;
+
+    // A running counter of exceptions within the current time window.
+    uint32_t exception_burst_count;
+} mk_sentient_task_state_t;
+
+// Priority levels for tasks during scheduling
+typedef enum {
+    MK_TASK_PRIORITY_NORMAL = 0, // Runs every tick
+    MK_TASK_PRIORITY_LOW = 1, // Skips 1 tick, runs 1
+    MK_TASK_PRIORITY_LOWER = 3, // Skips 3 ticks, runs 1
+    MK_TASK_PRIORITY_IDLE = 7 // Skips 7 ticks, runs 1
+} mk_task_priority_t;
 
 // Structure for all Mira tasks
 typedef struct _mk_task {
@@ -20,6 +38,13 @@ typedef struct _mk_task {
     uintptr_t user_stack_ptr; // Pointer to the top of the user stack
     int status; // 0 = Not Running, 1 = Running
     int mode; // 0 = Kernel, 1 = User
+
+    mk_sentient_task_state_t sentient_state; // State for the emergency fast-path
+    int kernel_locks_held; // For the critical safety interlock
+    uint64_t profiler_fault_count; // Task fault count for the profiler
+
+    mk_task_priority_t priority; // The task's current priority level.
+    int skip_counter; // Ticks remaining until this task can run.
 } mk_task;
 
 mk_task* mk_create_task(unsigned char* shellcode, size_t shellcode_size, const char* name);

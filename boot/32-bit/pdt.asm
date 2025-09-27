@@ -35,7 +35,7 @@ init_pt_protected:
 
     ; Fill Page Directories to Map 4 GiB
     mov edi, 0x902000               ; Start with PD0
-    mov ebx, 0x00000083             ; ? Flags: Present, R/W, 2MiB Page Each, Kernel Only
+    mov ebx, 0x00000087             ; ? Flags: Present, R/W, 2MiB Page Each
     mov ecx, 4 * 512                ; 4 Page Directories * 512 entries each
 .map_loop:
     mov [edi], ebx

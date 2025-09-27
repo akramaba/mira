@@ -119,13 +119,9 @@ void mk_idt_init() {
     // Set the IDT entry for the PIT timer interrupt (0x20)
     mk_idt_set_entry(&mk_idt[0x20], (uintptr_t)mk_pit_handler, MK_CODE_SELECTOR, 0x8E); // Ring 0
 
-#ifdef CONFIG_SENTIENT
-     // Set the IDT entry for the Page Fault interrupt (0x0E) for the Sentient system
-     mk_idt_set_entry(&mk_idt[0x0E], (uintptr_t)mk_sentient_page_fault_handler, MK_CODE_SELECTOR, 0x8E); // Ring 0
-#else
-    // In control builds, a page fault is a fatal kernel panic.
-    mk_idt_set_entry(&mk_idt[0x0E], (uintptr_t)mk_idt_exception_handler, MK_CODE_SELECTOR, 0x8E); // Ring 0
-#endif
+    // Set the IDT entry for the Page Fault interrupt (0x0E) for the Sentient system
+    // For control builds, the function will handle the page fault without Sentient.
+    mk_idt_set_entry(&mk_idt[0x0E], (uintptr_t)mk_sentient_page_fault_handler, MK_CODE_SELECTOR, 0x8E); // Ring 0
 
     // Load the IDT
     mk_idt_load(&mk_idt_ptr);

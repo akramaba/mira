@@ -6,6 +6,7 @@
 static int mk_scheduler_current_task = -1;
 static mk_cpu_state_t mk_scheduler_task_contexts[MK_TASKS_MAX]; // Array to hold task contexts
 static mk_task* mk_last_user_task_ran = NULL; // For Sentient: Track the latest user-mode task
+volatile int mk_eviction_ack_pid = -1; // Eviction handshake acknowledgment (-1 = free)
 
 // Mira Kernel Scheduler Get Next Task
 int mk_scheduler_get_next_task() {
@@ -15,19 +16,33 @@ int mk_scheduler_get_next_task() {
     }
 
     mk_task** all_tasks = mk_get_tasks();
-    int current_id = mk_scheduler_current_task;
 
-    // Start searching from the next task in the list
-    for (int i = 0; i < task_count; i++) {
-        current_id = (current_id + 1) % task_count;
-        // * Now able to not just be a round-robin scheduler, but also skip tasks that are not runnable (ex. stopped by Sentient!)
-        if (all_tasks[current_id] && all_tasks[current_id]->status != MK_TASKS_NOT_RUNNING) {
-             mk_scheduler_current_task = current_id;
-             return mk_scheduler_current_task;
+    // Loop indefinitely until a runnable task is found. This is guaranteed
+    // as long as at least one task has a priority allowing it to run.
+    for (;;) {
+        // Advance to the next task in the round-robin cycle.
+        mk_scheduler_current_task = (mk_scheduler_current_task + 1) % task_count;
+        mk_task* candidate = all_tasks[mk_scheduler_current_task];
+
+        // Skip invalid tasks or tasks that are not in a runnable state (e.g., zombies).
+        if (!candidate || candidate->status != MK_TASKS_RUNNING) {
+            continue;
         }
-    }
 
-    return -1; // No runnable tasks found
+        // * Core Skip Logic * //
+        if (candidate->skip_counter > 0) {
+            // This task is being throttled. Decrement its counter and skip it for this tick.
+            candidate->skip_counter--;
+            continue;
+        }
+
+        // This task is ready to run. Reset its skip counter based on its priority,
+        // which determines how many ticks it must skip *after* this run.
+        candidate->skip_counter = candidate->priority;
+        
+        // Return the index of the chosen task.
+        return mk_scheduler_current_task;
+    }
 }
 
 // Mira Kernel Task Scheduler
@@ -42,6 +57,12 @@ mk_cpu_state_t* mk_schedule(mk_cpu_state_t* regs) {
         mk_task* old_task_ptr = mk_get_tasks()[old_task_id];
         if (old_task_ptr && old_task_ptr->mode == MK_TASKS_USER_MODE) {
             mk_last_user_task_ran = old_task_ptr;
+        }
+
+        // ? This is the "handshake" signal. If the task we just switched away
+        // ? from was a zombie, we write its PID to the acknowledgment slot.
+        if (old_task_ptr && old_task_ptr->status == MK_TASKS_ZOMBIE) {
+            mk_eviction_ack_pid = old_task_ptr->id;
         }
 
         // * Use Mira's memcpy to avoid compiler optimization issues

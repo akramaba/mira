@@ -8,6 +8,10 @@
 #define MK_USER_CODE_SELECTOR 0x1B
 #define MK_USER_DATA_SELECTOR 0x23
 
+// Acknowledgment slot for the eviction handshake.
+// The scheduler writes a PID here when a zombie task is fully switched out.
+extern volatile int mk_eviction_ack_pid;
+
 // * This is the full CPU state saved during an interrupt.
 // * The order of the fields must match the order of the registers from the CPU.
 typedef struct {
