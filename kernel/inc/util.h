@@ -57,6 +57,41 @@ static inline void mk_util_print(const char* str) {
     }
 }
 
+// Mira Kernel Random Number Generator
+// Uses RDRAND if available, otherwise falls back to RDTSC.
+static inline uint64_t mk_util_rand(void) {
+    static int checked = 0;
+    static int has_rdrand = 0;
+
+    // Checks for RDRAND support only once by using CPUID
+    // and checking for the RDRAND feature bit (ECX bit 30).
+    if (!checked) {
+        uint32_t ecx;
+        __asm__ volatile("cpuid" : "=c"(ecx) : "a"(1), "c"(0) : "ebx", "edx");
+        has_rdrand = (ecx & (1 << 30));
+        checked = 1;
+    }
+
+    // Use RDRAND if it is supported.
+    if (has_rdrand) {
+        uint64_t val;
+        unsigned char success;
+
+        // Retry up to 10 times as recommended by Intel.
+        for (int i = 0; i < 10; ++i) {
+            __asm__ volatile("rdrand %0; setc %1" : "=r"(val), "=q"(success));
+            if (success) {
+                return val;
+            }
+        }
+    }
+
+    // Fallback to the Time Stamp Counter if RDRAND is unavailable or fails.
+    uint64_t tsc;
+    __asm__ volatile("rdtsc" : "=A"(tsc));
+    return tsc;
+}
+
 // Mira Kernel Clear Screen Function
 static inline void mk_util_clear_screen() {
     static uint16_t* video_memory = (uint16_t*)0xb8000;

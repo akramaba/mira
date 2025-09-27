@@ -22,6 +22,15 @@ mk_task* mk_create_task(unsigned char* shellcode, size_t shellcode_size, const c
     // Allocate user stack for user mode tasks
     new_task->user_stack_base = (uintptr_t)mk_malloc(4096); // Allocate user stack
     new_task->user_stack_ptr = new_task->user_stack_base + 4096; // User stack start (grows down)
+
+    // Initialize Sentient-related fields
+    new_task->sentient_state.last_exception_tick_ms = 0;
+    new_task->sentient_state.exception_burst_count = 0;
+    new_task->kernel_locks_held = 0;
+
+    // Initialize priority-related fields
+    new_task->priority = MK_TASK_PRIORITY_NORMAL;
+    new_task->skip_counter = 0;
     
     if (!new_task->base || !new_task->stack) {
         return NULL; // Allocation failed
@@ -57,6 +66,15 @@ mk_task* mk_create_task_from_function(int (*entry_point)(void), const char* name
     // Allocate user stack for user mode tasks
     new_task->user_stack_base = (uintptr_t)mk_malloc(4096); // Allocate user stack
     new_task->user_stack_ptr = new_task->user_stack_base + 4096; // User stack start (grows down)
+
+    // Initialize Sentient-related fields
+    new_task->sentient_state.last_exception_tick_ms = 0;
+    new_task->sentient_state.exception_burst_count = 0;
+    new_task->kernel_locks_held = 0;
+
+    // Initialize priority-related fields
+    new_task->priority = MK_TASK_PRIORITY_NORMAL;
+    new_task->skip_counter = 0;
 
     if (!new_task->base || !new_task->stack) {
         return NULL; // Allocation failed

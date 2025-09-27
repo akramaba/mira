@@ -4,7 +4,7 @@
 #include "tasks.h"
 #include <stdint.h>
 
-// Configuration Constants //
+// * Configuration Constants * //
 
 // Mira Kernel Sentient Profiler Interval
 // How often the profiler runs, in milliseconds.
@@ -12,11 +12,22 @@
 #define MK_SENTIENT_PROFILER_INTERVAL_MS 250
 
 // Mira Kernel Sentient Critical Exception Threshold
-// The "fever" threshold. The number of exceptions per
-// second that we consider to be a pathological state.
+// The "fever" threshold in exceptions per second.
 #define MK_SENTIENT_CRITICAL_EXCEPTION_THRESHOLD 15000
 
-// The Nociceptor (Sensor) //
+// * Emergency Fast-Path Configuration * //
+
+// The time window in milliseconds for detecting a high-frequency burst.
+#define MK_SENTIENT_EMERG_WINDOW_MS 10
+
+// The number of exceptions within EMERG_WINDOW_MS that triggers the fast-path.
+// 2000 faults / 10 ms = 200,000 faults/sec rate.
+#define MK_SENTIENT_EMERG_BURST_THRESHOLD 2000
+
+// Initialize the Sentient system
+void mk_sentient_init(void);
+
+// * The Nociceptor (Sensor) * //
 
 // Mira Kernel Sentient Page Fault Handler
 // The interrupt handler for Page Faults.
@@ -24,23 +35,29 @@
 // global counter and returns, allowing the faulting instruction to re-execute.
 void mk_sentient_page_fault_handler(void);
 
-// Mira Kernel Sentient Get and Reset Exception Count
-// Atomically reads and resets the global exception counter.
-// Called by the profiler to get the number of exceptions in the last interval.
-// Returns the number of exceptions that occurred since the last call.
-uint64_t mk_sentient_get_and_reset_exception_count(void);
-
-// The Homeostatic Profiler (Brain) //
+// * The Homeostatic Profiler (Brain) * //
 
 // Mira Kernel Profiler Entry
 // The entry point for the mk_profiler kernel task.
 // This function contains the main monitoring loop of the Sentient Kernel.
 int mk_profiler_entry(void);
 
-// The Apoptosis Protocol (Immune Response) //
+// * The Apoptosis Protocol (Immune Response) * //
+
+// Entry point for the apoptosis worker task.
+int mk_apoptosis_worker_entry(void);
 
 // Mira Kernel Sentient Apoptosis
 // Triggers the "immune response" to terminate a pathological task.
 void mk_sentient_apoptosis(mk_task* task);
+
+// Mira Kernel Sentient Isolate and Park CPU
+// Parks the current CPU core in case of an
+// unrecoverable fault with kernel lock held.
+void mk_sentient_isolate_and_park_cpu(void);
+
+// Mira Kernel Apoptosis Worker Enqueue
+// Enqueues a PID for the apoptosis worker to clean up.
+void mk_apoptosis_worker_enqueue(int pid);
 
 #endif // MK_SENTIENT_H
