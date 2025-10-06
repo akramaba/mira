@@ -125,4 +125,19 @@ void* mira_malloc(size_t size) {
     return (void*)ret_ptr;
 }
 
+// Mira Get RDTSC Function
+static inline uint64_t mira_rdtsc(void) {
+    uint64_t ret;
+
+    __asm__ volatile (
+        "mov $8, %%rax\n\t"
+        "int $0x80"
+        : "=a"(ret)
+        :
+        : "rcx", "r11", "memory"
+    );
+
+    return ret;
+}
+
 #endif

@@ -158,7 +158,7 @@ void mk_sentient_page_fault_c_handler(mk_interrupt_frame_t *frame) {
         mk_apoptosis_worker_enqueue(current_task->id);
 
         // 3e. Log the event for analysis and return from the exception.
-        mk_dbg_print("APOPTOSIS: Fast-path quarantine for PID ");
+        mk_dbg_print("Mira Apoptosis: Fast-path quarantine for PID ");
         char pid_str[10];
         mk_dbg_itoa(current_task->id, pid_str);
         mk_dbg_print(pid_str);
@@ -289,7 +289,7 @@ void mk_sentient_apoptosis(mk_task* task) {
     // In a production system, we would want to free the memory.
     mk_dbg_print("Mira Apoptosis: Task neutralized. System stability restored.\n");
 
-    // print the task pid for info
+    // Print the task's PID for information
     mk_dbg_print("Mira Apoptosis: Quarantined PID ");
     char pid_str[10];
     mk_dbg_itoa(task->id, pid_str);

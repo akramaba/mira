@@ -53,6 +53,33 @@ static inline void m2d_present(m2d_context* ctx) {
     }
 }
 
+// Basics //
+
+static inline void m2d_draw_pixel(m2d_context* ctx, int x, int y, uint32_t color) {
+    if (x >= 0 && x < ctx->width && y >= 0 && y < ctx->height) {
+        ctx->framebuffer[y * ctx->width + x] = color;
+    }
+}
+
+static inline void m2d_draw_line(m2d_context* ctx, int x0, int y0, int x1, int y1, uint32_t color) {
+    int dx = x1 - x0;
+    int dy = y1 - y0;
+    int abs_dx = dx > 0 ? dx : -dx;
+    int abs_dy = dy > 0 ? dy : -dy;
+    int sx = dx > 0 ? 1 : (dx < 0 ? -1 : 0);
+    int sy = dy > 0 ? 1 : (dy < 0 ? -1 : 0);
+    int err = (abs_dx > abs_dy ? abs_dx : -abs_dy) / 2;
+    int e2;
+
+    while (1) {
+        m2d_draw_pixel(ctx, x0, y0, color);
+        if (x0 == x1 && y0 == y1) break;
+        e2 = err;
+        if (e2 > -abs_dx) { err -= abs_dy; x0 += sx; }
+        if (e2 < abs_dy) { err += abs_dx; y0 += sy; }
+    }
+}
+
 // Rectangles //
 
 static inline void m2d_draw_rect(m2d_context* ctx, int x, int y, int width, int height, uint32_t color) {

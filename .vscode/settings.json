@@ -32,6 +32,9 @@
         "cstdlib": "c",
         "mira.h": "c",
         "sentient.h": "c",
-        "work_queue.h": "c"
+        "work_queue.h": "c",
+        "adaptive.h": "c",
+        "font.h": "c",
+        "mira2d.h": "c"
     }
 }

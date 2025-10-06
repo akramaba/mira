@@ -5,13 +5,14 @@
 #include "tasks.h"
 
 // * Configuration Constants for the Adaptive System
-// * These values are defaults and can be tuned.
+// * These values are defaults and can be tuned, though
+// * they have been chosen to work well in the tests.
 
 // The number of mitigation actions available.
 #define MK_ADAPTIVE_MAX_ACTIONS 3
 
 // How often the adaptive profiler runs, in milliseconds.
-#define MK_ADAPTIVE_PROFILER_INTERVAL_MS 200
+#define MK_ADAPTIVE_PROFILER_INTERVAL_MS 150
 
 // Exploration probability (epsilon) for action selection.
 // ? Value is out of FIXED_POINT_SCALE. 102/1024 ~= 10% (0.1)
@@ -28,10 +29,10 @@
 #define MK_ADAPTIVE_ALPHA_LONG 50
 
 // The threshold (EMA_short - EMA_long) to trigger an anomaly.
-#define MK_ADAPTIVE_DETECT_THRESHOLD 2000
+#define MK_ADAPTIVE_DETECT_THRESHOLD 1500
 
 // The number of consecutive ticks an anomaly must be detected to trigger action.
-#define MK_ADAPTIVE_DETECT_K 3
+#define MK_ADAPTIVE_DETECT_K 2
 
 // The duration of a mitigation action epoch in milliseconds.
 #define MK_ADAPTIVE_EPOCH_MS 1000

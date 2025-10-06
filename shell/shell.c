@@ -1,13 +1,40 @@
-#include "inc/mira.h"
+#include "inc/font.h"
 #include "inc/string.h"
+#include "inc/util.h"
+
+// Graphical context for displaying information
+static m2d_context* ctx = NULL;
 
 // Test Case 1: A harmless, long-running application.
 // The Sentient Kernel should never terminate this task.
 int ms_benign_task_entry(void) {
+    uint64_t start_time, end_time, latency;
+    char latency_buffer[21];
+
+    ms_font_draw_string(ctx, "...", 10, 50, 0xFFFFFF);
+    m2d_present(ctx);
+
     while (1) {
+        start_time = mira_rdtsc();
+
         // This task prints a message roughly every second to show it's alive.
         for (volatile int i = 0; i < 50000000; i++);
-        mira_print("Benign Task: Still running...\n", 0);
+        end_time = mira_rdtsc();
+
+        // Calculate and print the latency in raw CPU ticks.
+        latency = end_time - start_time;
+        u64toa(latency, latency_buffer);
+        mira_print("Benign Task: Still running... (Latency: ", 0);
+        mira_print(latency_buffer, 0);
+        mira_print(" ticks)\n", 0);
+
+        // Update the graphical panel with the latest latency.
+        m2d_clear(ctx, 0x000000);
+        ms_font_draw_string(ctx, "Mira Sentient System", 10, 10, 0xFFFFFF);
+        ms_font_draw_string(ctx, "Benign Task Latency (ticks): ", 10, 50, 0xFFFFFF);
+        ms_font_draw_string(ctx, latency_buffer, 300, 50, 0x00FF00);
+        m2d_draw_line(ctx, 10, 80, 400, 80, 0xFFFFFF);
+        m2d_present(ctx);
     }
 
     return 0;
@@ -60,7 +87,7 @@ int ms_adaptive_virus_entry(void) {
             heartbeat_counter = 0;
         }
 
-        for (volatile int i = 0; i < 40000; i++);
+        for (volatile int i = 0; i < 80000; i++);
     }
 
     return 0;
@@ -68,7 +95,18 @@ int ms_adaptive_virus_entry(void) {
 
 // Mira Shell Entry Point
 // The shell now acts as a test group for the Sentient and Adaptive Kernel systems.
+// It also displays a panel for relevant information during the testing.
 void ms_entry(void) {
+    // Graphics setup
+    int window = mira_create_window(0, 0, 1280, 720);
+    ctx = m2d_create_context(1280, 720);
+    m2d_set_window(ctx, window);
+
+    // Render the sticky parts of the panel once before starting tests.
+    m2d_clear(ctx, 0x000000); // Only clear one time to keep previous text!
+    ms_font_draw_string(ctx, "Mira Sentient System", 10, 10, 0xFFFFFF);
+    m2d_present(ctx);
+
     mira_print("--- Mira OS Adaptive Defense Test ---\n", 0);
     mira_print("Spawning tasks to validate the multi-layer defense system.\n\n", 0);
 
@@ -88,9 +126,15 @@ void ms_entry(void) {
     mira_print("Launching adaptive_virus (PID 7)...\n", 0);
     mira_execute_task(ms_adaptive_virus_entry, "Adaptive Virus");
 
+    // 5. Launch the fork bomb. Should all be stopped by the Sentient Fast-Path.
+    mira_print("Launching fork_bomb (PID 8 - 31)...\n", 0);
+    for (int i = 0; i < 24; i++) {
+        mira_execute_task(ms_pf_virus_entry, "Fork Bomb Instance");
+    }
+
     mira_print("\nAll test tasks launched. Monitoring output...\n", 0);
     mira_print("------------------------------------------\n", 0);
 
-    // The shell's work is done. It now idles while the other tasks run.
+    // The shell's work is done. It now idles while the tasks run.
     while (1) {};
 }

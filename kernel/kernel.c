@@ -5,7 +5,7 @@
 #include "inc/assets.h"
 #include "inc/vbe.h"
 #include "inc/sentient.h"
-#include "../inc/adaptive.h"
+#include "inc/adaptive.h"
 #include "inc/dbg.h"
 
 extern int ms_entry();
@@ -23,7 +23,7 @@ int mk_entry() {
     mk_adaptive_init();
 #endif
     mk_dbg_init();
-
+    
     // Create a task for the Mira Shell
     // We use a function pointer directly
     mk_task *shell_task = mk_create_task_from_function(ms_entry, "Mira Shell");

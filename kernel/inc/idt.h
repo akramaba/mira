@@ -1,5 +1,5 @@
-#ifndef KERNEL_IDT_H
-#define KERNEL_IDT_H
+#ifndef MK_IDT_H
+#define MK_IDT_H
 
 #include "pit.h"
 #include "syscalls.h"
