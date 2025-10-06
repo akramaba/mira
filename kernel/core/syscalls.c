@@ -94,6 +94,13 @@ long mk_syscall_malloc(mk_syscall_args *args) {
     return (long)ptr;
 }
 
+// Mira System Call RDTSC (Read Time-Stamp Counter)
+long mk_syscall_rdtsc(mk_syscall_args *args) {
+    uint32_t low, high;
+    __asm__ volatile ("rdtsc" : "=a"(low), "=d"(high));
+    return ((uint64_t)high << 32) | low;
+}
+
 // Mira System Call Function Definition & Table
 typedef long (*mk_syscall_func)(mk_syscall_args *);
 const mk_syscall_func syscall_table[] = {
@@ -105,6 +112,7 @@ const mk_syscall_func syscall_table[] = {
     mk_syscall_update_window, // Update an existing window
     mk_syscall_execute_task, // Execute a new task
     mk_syscall_malloc, // Allocate memory
+    mk_syscall_rdtsc // Get RDTSC value
 };
 
 // Mira System Call Dispatcher

@@ -27,6 +27,9 @@ typedef struct {
     uint64_t action_until_ms;
     mk_adaptive_action_t current_action;
     int64_t last_fault_rate;
+
+    // For tracking time to first detection.
+    int first_action_logged;
 } mk_target_state_t;
 
 // A simple map for storing task states.
@@ -48,7 +51,10 @@ static mk_target_state_t *mk_adaptive_get_target_state(mk_task *task) {
     for (int i = 0; i < MK_ADAPTIVE_MAX_TARGETS; i++) {
         if (mk_targets[i].task == NULL) {
             mk_memset(&mk_targets[i], 0, sizeof(mk_target_state_t));
+
             mk_targets[i].task = task;
+            mk_targets[i].first_action_logged = 0;
+
             return &mk_targets[i];
         }
     }
@@ -77,6 +83,15 @@ void mk_adaptive_report_fault(mk_task *task) {
 static void mk_adaptive_apply_action(mk_task *task, mk_adaptive_action_t action) {
     char pid_str[10];
     mk_dbg_itoa(task->id, pid_str);
+
+    // Log the first action taken on this task for latency measurement.
+    mk_target_state_t *state = mk_adaptive_get_target_state(task);
+    if (state && !state->first_action_logged) {
+        mk_dbg_print("Adaptive Profiler: First action taken on PID ");
+        mk_dbg_print(pid_str);
+        mk_dbg_print("\n");
+        state->first_action_logged = 1;
+    }
 
     switch(action) {
         case MK_ADAPTIVE_ACTION_THROTTLE_LIGHT:
