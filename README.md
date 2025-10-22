@@ -1,66 +1,62 @@
 <div align="center">
-    <img src="https://i.ibb.co/prR8ZBhY/mira.png" alt="Mira Logo" />
+<img src="https://i.ibb.co/prR8ZBhY/mira.png" alt="Mira Logo" />
 </div>
 
-# Mira - 64-Bit Graphical Operating System
+<h1 align="center">Mira OS</h1>
+<p align="center">
+  <strong>A complete 64-bit graphical operating system, built from scratch in C and Assembly.</strong>
+  <br/>
+  <em>Created as a platform for my research into a novel, bio-inspired resilient kernel architecture.</em>
+</p>
 
-## About
-Mira is a personal exploration into building a 64-bit operating system kernel from the ground up, written primarily in C and Assembly. My focus has been on understanding the foundational aspects of OS design, including boot processes, memory management, and basic task scheduling. While Mira is still in development and not intended for daily use, it represents a deep dive into creating operating systems from scratch.
+---
 
-## Current Features
+This repository contains **Mira OS**, a fully custom, 64-bit graphical operating system I developed from first principles to create a clean environment for computer science research. This project has two core components: the operating system itself and the novel research it enabled.
 
-* **Multi-Stage Bootloader:** Boots from 16-bit Real Mode, through 32-bit Protected Mode, and into 64-bit Long Mode.
-* **Paging Enabled:** Basic page table setup to identity map the lower physical memory.
-* **Global Descriptor Table (GDT) Setup:** Implemented for both 32-bit and 64-bit modes.
-* **Interrupt Descriptor Table (IDT) Initialization:** Basic IDT setup with default handlers and specific entries for PIT and a simple syscall.
-* **Programmable Interval Timer (PIT) Integration:** PIT initialized for timed interrupts and basic scheduling.
-* **Core Kernel Services:**
-    * Basic bump allocator for memory management.
-    * Basic keyboard input handling.
-    * Simple round-robin task scheduler.
-    * Minimal syscall interface (direct VGA character/pixel output).
+## Part 1: The Platform - An OS from Scratch
 
-## What I Learned
+To conduct my research, I first had to build a complete modern operating system from bare metal. This involved engineering every critical component, from the bootloader to the graphical user interface.
 
-Working on Mira has been a challenging but rewarding journey into:
-* x86 architecture and its different operating modes.
-* The complexities of CPU initialization and memory segmentation/paging.
-* Interrupt handling and timer mechanisms.
-* The fundamentals of kernel design and basic process management.
-* Low-level device interaction (keyboard input, VGA output).
+**Key Engineering Achievements:**
 
-## Building
+| Component | Key Achievement | Demonstrated Skills |
+| :--- | :--- | :--- |
+| **Bootloader** | 16-bit to 64-bit Long Mode Transition | Orchestrating complex CPU mode switches without any OS support. (**Assembly, Low-Level CPU Control**) |
+| **Memory Mgmt.** | 4-Level Paging & Virtual Memory from Scratch | Manually building the entire x86-64 page table hierarchy. (**OS Theory, x86-64 Architecture**) |
+| **Kernel & Scheduler** | Preemptive Multitasking | Implementing assembly-level context switching to manage concurrent user-mode processes. (**Concurrency, Process Management**) |
+| **Graphics**| User-Mode Graphical Subsystem via Syscalls | Architecting a secure kernel interface with a custom library for high-quality anti-aliased UI rendering. (**API Design, Graphics Programming**) |
 
-To build Mira, you will need the following tools:
-* `clang`
-* `nasm`
-* `gdb` (for debugging)
-* `ld.lld`
+**[➡️ Explore the Full OS Architecture & Technical Details...](FEATURES.md)**
 
-There is a `build.sh` script in the root directory that will build Mira for you. To run the script, simply execute the following command:
+---
+
+## Part 2: The Research - The Sentient Kernel
+
+Using this OS, I formally defined and solved a critical vulnerability I call **Computational Livelock**. This is a state where a simple user program can hijack the CPU by triggering a storm of hardware exceptions, starving the entire system.
+
+My solution is the **Sentient Kernel**, a bio-inspired defense system that treats the exception rate as a "system fever" to autonomously detect and neutralize these attacks. The results were definite:
+
+* **Control Kernel:** Suffered catastrophic failure under attack (**19.6B** tick latency).
+* **Sentient Kernel:** Neutralized all threats and demonstrated a **78.6% performance improvement** over the control (**4.2B** tick latency).
+
+**[➡️ Read the Full Research Summary & Results...](RESEARCH.md)**
+
+---
+
+## Build and Run The Experiment
+
+The entire research experiment is automated. A below command will build the custom toolchain, compile both the control and Sentient kernels, run the benchmark in QEMU, and display the performance comparisons from Mira's custom graphical dashboard.
+
+You can run either the vulnerable "Control" kernel or the "Sentient" kernel to see the performance difference.
 
 ```bash
-./build.sh
+# Clone the repository
+git clone https://github.com/akramaba/mira.git
+cd mira
+
+# Build and run the "Control" experiment (will fail under attack)
+./build.sh control
+
+# Build and run the "Sentient" experiment (will survive the attack)
+./build.sh sentient
 ```
-
-## Running
-
-To run Mira, you will need to install QEMU. Once you have QEMU installed, you can run Mira by executing the following command:
-
-```bash
-qemu-system-x86_64 -cdrom build/mira.img
-```
-
-## Future Exploration
-
-While current development is focused on polishing the core kernel, future areas I'd like to explore include:
-* More advanced memory and process management.
-* A simple filesystem (FAT32 or a custom one).
-* Basic device drivers (Sound Blaster 16 audio, etc.).
-* A minimal graphical user interface with window management.
-* User-mode applications (notepad, simple games).
-* Networking stack (UDP/TCP/IP).
-
-## License
-
-Mira is licensed under the MIT License. See the LICENSE file for more information.
