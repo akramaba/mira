@@ -4,13 +4,13 @@
 #include <stdint.h>
 
 // Unsigned 64-bit integer to ASCII conversion
-static void u64toa(uint64_t n, char* str) {
+static char* u64toa(uint64_t n, char* str) {
     int i = 0;
 
     if (n == 0) {
         str[i++] = '0';
         str[i] = '\0';
-        return;
+        return str;
     }
 
     while (n != 0) {
@@ -26,6 +26,8 @@ static void u64toa(uint64_t n, char* str) {
         str[j] = str[i - j - 1];
         str[i - j - 1] = temp;
     }
+
+    return str;
 }
 
 #endif

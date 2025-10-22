@@ -27,6 +27,9 @@ typedef struct {
     uint64_t base;
 } __attribute__((packed)) mk_idt_ptr_t;
 
+// Total exceptions of the system
+extern volatile uint64_t mk_idt_total_exceptions;
+
 // Function to finish an interrupt
 void mk_idt_post_handler();
 

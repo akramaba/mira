@@ -2,7 +2,8 @@
 #include "../inc/keyboard.h"
 #include "../inc/mouse.h"
 #include "../inc/win.h"
-#include "../inc/tasks.h"
+#include "../inc/scheduler.h"
+#include "../inc/idt.h"
 #include "../inc/dbg.h"
 #include "../inc/util.h"
 #include "../inc/mem.h"
@@ -101,6 +102,51 @@ long mk_syscall_rdtsc(mk_syscall_args *args) {
     return ((uint64_t)high << 32) | low;
 }
 
+// Mira System Call Read Debug Log
+long mk_syscall_read_log(mk_syscall_args *args) {
+    char* user_buf = (char*)args->arg1;
+    size_t user_buf_len = (size_t)args->arg2;
+    size_t bytes_copied = 0;
+
+    if (!user_buf || user_buf_len == 0) return 0;
+
+    // Copy from kernel circular buffer to user buffer
+    while (bytes_copied < user_buf_len - 1 && mk_dbg_log_head != mk_dbg_log_tail) {
+        user_buf[bytes_copied++] = mk_dbg_log_buffer[mk_dbg_log_head];
+        mk_dbg_log_head = (mk_dbg_log_head + 1) % MK_DBG_LOG_BUFFER_SIZE;
+    }
+
+    user_buf[bytes_copied] = '\0';
+    return bytes_copied;
+}
+
+// Mira System Call Sleep
+long mk_syscall_sleep(mk_syscall_args *args) {
+    uint64_t ms_to_sleep = (uint64_t)args->arg1;
+    if (ms_to_sleep == 0) return 0;
+
+    mk_task* current_task = mk_scheduler_get_current_task();
+    if (current_task) {
+        // * The PIT ticks once per millisecond
+        current_task->wakeup_tick = mk_pit_get_tick_count() + ms_to_sleep;
+        current_task->status = MK_TASKS_SLEEPING;
+    }
+    
+    return 0;
+}
+
+// Mira System Call Get System Info
+long mk_syscall_get_system_info(mk_syscall_args *args) {
+    uint64_t exceptions = mk_idt_total_exceptions;
+    uint32_t task_count = (uint32_t)mk_get_task_count();
+    
+    // * Combine them into a single 64-bit 'long' return value.
+    // * Packing: [ Upper 32 bits: task_count | Lower 32 bits: exceptions ]
+    long result = ((long)task_count << 32) | (exceptions & 0xFFFFFFFF);
+
+    return result;
+}
+
 // Mira System Call Function Definition & Table
 typedef long (*mk_syscall_func)(mk_syscall_args *);
 const mk_syscall_func syscall_table[] = {
@@ -112,7 +158,10 @@ const mk_syscall_func syscall_table[] = {
     mk_syscall_update_window, // Update an existing window
     mk_syscall_execute_task, // Execute a new task
     mk_syscall_malloc, // Allocate memory
-    mk_syscall_rdtsc // Get RDTSC value
+    mk_syscall_rdtsc, // Get RDTSC value
+    mk_syscall_read_log, // Read debug log
+    mk_syscall_sleep, // Sleep for a set time
+    mk_syscall_get_system_info // Get system information
 };
 
 // Mira System Call Dispatcher

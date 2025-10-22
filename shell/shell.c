@@ -2,17 +2,43 @@
 #include "inc/string.h"
 #include "inc/util.h"
 
+// Console add-on for displaying a scrolling log of text.
+#include "apps/console.h"
+
+// Status add-on ...
+#include "apps/status.h"
+
 // Graphical context for displaying information
 static m2d_context* ctx = NULL;
+
+// A buffer to hold log messages from the kernel
+char log_buffer[4096];
+
+// Main display task for rendering the console
+int ms_display_manager_entry(void) {
+    while(1) {
+        // Check for new logs from the kernel
+        long bytes_read = mira_read_log(log_buffer, sizeof(log_buffer));
+        if (bytes_read > 0) {
+            console_log(log_buffer); // Add the new logs to the on-screen console
+        }
+
+        // Redraw the console and present
+        console_draw();
+        status_draw();
+        m2d_present(ctx);
+
+        mira_sleep(16); // ~60 FPS update rate
+    }
+
+    return 0;
+}
 
 // Test Case 1: A harmless, long-running application.
 // The Sentient Kernel should never terminate this task.
 int ms_benign_task_entry(void) {
     uint64_t start_time, end_time, latency;
     char latency_buffer[21];
-
-    ms_font_draw_string(ctx, "...", 10, 50, 0xFFFFFF);
-    m2d_present(ctx);
 
     while (1) {
         start_time = mira_rdtsc();
@@ -27,14 +53,6 @@ int ms_benign_task_entry(void) {
         mira_print("Benign Task: Still running... (Latency: ", 0);
         mira_print(latency_buffer, 0);
         mira_print(" ticks)\n", 0);
-
-        // Update the graphical panel with the latest latency.
-        m2d_clear(ctx, 0x000000);
-        ms_font_draw_string(ctx, "Mira Sentient System", 10, 10, 0xFFFFFF);
-        ms_font_draw_string(ctx, "Benign Task Latency (ticks): ", 10, 50, 0xFFFFFF);
-        ms_font_draw_string(ctx, latency_buffer, 300, 50, 0x00FF00);
-        m2d_draw_line(ctx, 10, 80, 400, 80, 0xFFFFFF);
-        m2d_present(ctx);
     }
 
     return 0;
@@ -61,7 +79,7 @@ int ms_pf_stealth_virus_entry(void) {
     // threshold. The profiler should detect this within a few of its cycles.
     while (1) {
         *((volatile int*)0x140000000) = 1;
-        for (volatile int i = 0; i < 5000; i++);
+        for (volatile int i = 0; i < 400; i++);
     }
 
     return 0;
@@ -80,14 +98,14 @@ int ms_adaptive_virus_entry(void) {
     while (1) {
         *((volatile int*)0x140000000) = 1;
 
-        // Every 50 loops, print a period to the console.
+        // Every 100 loops, print a notice to the console.
         // This gives us a visible signal of the task's execution rate.
-        if (++heartbeat_counter > 50) {
-            mira_print(".", 0);
+        if (++heartbeat_counter > 250) {
+            mira_print("Adaptive Virus: Heartbeat...\n", 0);
             heartbeat_counter = 0;
         }
 
-        for (volatile int i = 0; i < 80000; i++);
+        for (volatile int i = 0; i < 20000; i++);
     }
 
     return 0;
@@ -102,33 +120,35 @@ void ms_entry(void) {
     ctx = m2d_create_context(1280, 720);
     m2d_set_window(ctx, window);
 
-    // Render the sticky parts of the panel once before starting tests.
-    m2d_clear(ctx, 0x000000); // Only clear one time to keep previous text!
-    ms_font_draw_string(ctx, "Mira Sentient System", 10, 10, 0xFFFFFF);
-    m2d_present(ctx);
+    // Initialize the console/status modules with the graphical context.
+    console_init(ctx);
+    status_init(ctx);
+
+    // Render the display task
+    mira_execute_task(ms_display_manager_entry, "Display Manager");
 
     mira_print("--- Mira OS Adaptive Defense Test ---\n", 0);
     mira_print("Spawning tasks to validate the multi-layer defense system.\n\n", 0);
 
     // 1. Launch the benign task. It should not be interrupted.
-    mira_print("Launching benign task (PID 4)...\n", 0);
+    mira_print("Launching benign task (PID 5)...\n", 0);
     mira_execute_task(ms_benign_task_entry, "Benign Task");
 
     // 2. Launch the brute-force virus. Should be quarantined by the Sentient Fast-Path.
-    mira_print("Launching brute-force pf_virus (PID 5)...\n", 0);
+    mira_print("Launching brute-force pf_virus (PID 6)...\n", 0);
     mira_execute_task(ms_pf_virus_entry, "PF Virus (Brute Force)");
 
     // 3. Launch the stealth virus. Should be quarantined by the Sentient Profiler.
-    mira_print("Launching pf_virus_stealth (PID 6)...\n", 0);
+    mira_print("Launching pf_virus_stealth (PID 7)...\n", 0);
     mira_execute_task(ms_pf_stealth_virus_entry, "PF Virus (Stealth)");
 
     // 4. Launch the moderate virus. Should be handled by the Adaptive Controller.
-    mira_print("Launching adaptive_virus (PID 7)...\n", 0);
+    mira_print("Launching adaptive_virus (PID 8)...\n", 0);
     mira_execute_task(ms_adaptive_virus_entry, "Adaptive Virus");
 
     // 5. Launch the fork bomb. Should all be stopped by the Sentient Fast-Path.
-    mira_print("Launching fork_bomb (PID 8 - 31)...\n", 0);
-    for (int i = 0; i < 24; i++) {
+    mira_print("Launching fork_bomb (PID 9 - 31)...\n", 0);
+    for (int i = 0; i < 23; i++) {
         mira_execute_task(ms_pf_virus_entry, "Fork Bomb Instance");
     }
 

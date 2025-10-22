@@ -46,6 +46,7 @@ void mk_pit_init() {
 
     // Unmask IRQ0 on the PIC to allow PIT interrupts
     uint8_t mask = mk_util_inb(0x21);
+    mask |= (1 << 1); // Set bit 1 to disable keyboard interrupts
     mask &= ~(1 << 0); // Clear bit 0 to allow PIT interrupts
     mk_util_outb(0x21, mask);
 

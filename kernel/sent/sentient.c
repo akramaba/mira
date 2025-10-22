@@ -84,9 +84,11 @@ __attribute__((naked)) void mk_sentient_page_fault_handler(void) {
     );
 }
 
-// This is the C implementation of the Emergency Fast-Path, matching the paper's
-// `sentient_page_fault_handler_TEST` pseudocode.
+// Mira Sentient Page Fault C Handler
+// This function implements the multi-layer defense logic for handling page faults.
 void mk_sentient_page_fault_c_handler(mk_interrupt_frame_t *frame) {
+    mk_idt_total_exceptions++;
+
     mk_task* current_task = mk_scheduler_get_current_task();
 
     // Check if it's a zombie. If so, do nothing, as it 
@@ -102,11 +104,14 @@ void mk_sentient_page_fault_c_handler(mk_interrupt_frame_t *frame) {
        __asm__ volatile("cli; hlt");
     }
 
+    // Get the instruction length for advancing
+    size_t instruction_length = mk_util_get_instruction_length((uint8_t*)frame->rip);
+
 #ifndef CONFIG_SENTIENT
     // For a non-Sentient (control) build, we skip all detection logic.
     // We simply advance the instruction pointer and return, which
     // demonstrates the Computational Livelock vulnerability.
-    frame->rip += 6;
+    frame->rip += instruction_length;
     return;
 #endif
 
@@ -150,9 +155,8 @@ void mk_sentient_page_fault_c_handler(mk_interrupt_frame_t *frame) {
         current_task->status = MK_TASKS_ZOMBIE;
 
         // 3c. Advance RIP to break the pathological loop.
-        // This is the simplified, test-only policy. It modifies the
-        // saved instruction pointer on the interrupt stack frame.
-        frame->rip += 6;
+        // using the calculated instruction length.
+        frame->rip += instruction_length;
 
         // 3d. Enqueue the task's PID for the deferred cleanup worker.
         mk_apoptosis_worker_enqueue(current_task->id);
@@ -167,10 +171,9 @@ void mk_sentient_page_fault_c_handler(mk_interrupt_frame_t *frame) {
         return; // Return to the assembly stub, which will iretq.
     }
 
-    // ? Allows for the faulting instruction to be re-executed.
-    // ? Since this is a controlled testing environment, we simply
-    // ? can rely on the instruction being six bytes via objdump.
-    frame->rip += 6;
+    // Allows for the faulting instruction to still 
+    // be re-executed when a threshold is not reached.
+    frame->rip += instruction_length;
 
     // If not a burst, return. The assembly stub will iretq, and the faulting
     // instruction will be re-executed, continuing the cycle.

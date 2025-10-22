@@ -140,4 +140,54 @@ static inline uint64_t mira_rdtsc(void) {
     return ret;
 }
 
+// Mira Read Debug Log Function
+static inline long mira_read_log(char* buffer, size_t size) {
+    long ret;
+
+    __asm__ volatile (
+        "mov $9, %%rax\n\t"
+        "mov %1, %%rdi\n\t"
+        "mov %2, %%rsi\n\t"
+        "int $0x80"
+        : "=a"(ret)
+        : "D"(buffer), "S"(size)
+        : "memory"
+    );
+
+    return ret;
+}
+
+// Mira Sleep Function
+static inline long mira_sleep(uint64_t milliseconds) {
+    long ret;
+
+    __asm__ volatile (
+        "mov $10, %%rax\n\t"
+        "mov %1, %%rdi\n\t"
+        "int $0x80"
+        : "=a"(ret)
+        : "D"(milliseconds)
+        : "memory"
+    );
+
+    return ret;
+}
+
+// Mira System Info Function
+static inline long mira_get_system_info(uint32_t* task_count, uint32_t* exceptions) {
+    long ret;
+
+    __asm__ volatile (
+        "mov $11, %%rax\n\t"
+        "int $0x80"
+        : "=a"(ret)
+        :
+        : "rcx", "r11", "memory"
+    );
+
+    // De-pack the return value (upper 32 bits = task count, lower 32 bits = exceptions)
+    *exceptions = (uint32_t)(ret & 0xFFFFFFFF);
+    *task_count = (uint32_t)(ret >> 32);
+}
+
 #endif
