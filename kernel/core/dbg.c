@@ -3,11 +3,24 @@
 #include "../inc/scheduler.h"
 #include "../inc/util.h"
 
+// Circular buffer for sending debug messages
+// to the user-space via syscall polling.
+char mk_dbg_log_buffer[MK_DBG_LOG_BUFFER_SIZE];
+volatile uint32_t mk_dbg_log_head = 0;
+volatile uint32_t mk_dbg_log_tail = 0;
+
 // Mira Kernel Debug Print Character
 static void mk_dbg_putc(char c) {
     // ? Waits until the transmit buffer is empty before sending
     while ((mk_util_inb(MK_DBG_COM1_PORT + 5) & 0x20) == 0);
     mk_util_outb(MK_DBG_COM1_PORT, c);
+
+    // Add the message to the log buffer
+    uint32_t next_tail = (mk_dbg_log_tail + 1) % MK_DBG_LOG_BUFFER_SIZE;
+    if (next_tail != mk_dbg_log_head) {
+        mk_dbg_log_buffer[mk_dbg_log_tail] = c;
+        mk_dbg_log_tail = next_tail;
+    }
 }
 
 // Mira Kernel Debug Initialization

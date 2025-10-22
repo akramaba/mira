@@ -5,6 +5,12 @@
 #include <stddef.h>
 
 #define MK_DBG_COM1_PORT 0x3F8
+#define MK_DBG_LOG_BUFFER_SIZE 4096
+
+// Set as externs for syscalls.c to access
+extern char mk_dbg_log_buffer[MK_DBG_LOG_BUFFER_SIZE];
+extern volatile uint32_t mk_dbg_log_head;
+extern volatile uint32_t mk_dbg_log_tail;
 
 // Mira Kernel Debug Initialization
 // Setups the COM1 serial port for output.

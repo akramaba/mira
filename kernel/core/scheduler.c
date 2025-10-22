@@ -16,6 +16,15 @@ int mk_scheduler_get_next_task() {
     }
 
     mk_task** all_tasks = mk_get_tasks();
+    uint64_t current_tick = mk_pit_get_tick_count();
+
+    // Loop through all tasks to wake up any that are due.
+    for (int i = 0; i < task_count; i++) {
+        mk_task* task = all_tasks[i];
+        if (task && task->status == MK_TASKS_SLEEPING && current_tick >= task->wakeup_tick) {
+            task->status = MK_TASKS_RUNNING;
+        }
+    }
 
     // Loop indefinitely until a runnable task is found. This is guaranteed
     // as long as at least one task has a priority allowing it to run.

@@ -13,7 +13,7 @@
 
 // Mira Kernel Sentient Critical Exception Threshold
 // The "fever" threshold in exceptions per second.
-#define MK_SENTIENT_CRITICAL_EXCEPTION_THRESHOLD 10000
+#define MK_SENTIENT_CRITICAL_EXCEPTION_THRESHOLD 15000
 
 // * Emergency Fast-Path Configuration * //
 

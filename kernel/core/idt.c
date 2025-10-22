@@ -7,6 +7,7 @@
 #define MK_IDT_ENTRIES 256
 mk_idt_entry_t mk_idt[MK_IDT_ENTRIES];
 mk_idt_ptr_t mk_idt_ptr;
+volatile uint64_t mk_idt_total_exceptions = 0;
 
 // Mira Kernel IDT Set Entry
 void mk_idt_set_entry(mk_idt_entry_t *entry, uintptr_t handler, uint16_t segment_selector, uint8_t type_attributes) {

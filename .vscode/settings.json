@@ -35,6 +35,8 @@
         "work_queue.h": "c",
         "adaptive.h": "c",
         "font.h": "c",
-        "mira2d.h": "c"
+        "mira2d.h": "c",
+        "console.h": "c",
+        "status.h": "c"
     }
 }

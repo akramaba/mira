@@ -100,4 +100,63 @@ static inline void mk_util_clear_screen() {
     }
 }
 
+// Mira Kernel Get Instruction Length
+// Decodes the length of an x86-64 instruction at a given memory address.
+// This implementation is highly optimized for performance in the critical fast-path.
+// It decodes only the ModR/M, SIB, and immediate fields common to memory access
+// instructions in order to satisfy the need for a general LDE with minimal overhead.
+// * Referenced from: https://wiki.osdev.org/X86-64_Instruction_Encoding
+static inline size_t mk_util_get_instruction_length(const uint8_t* instr_ptr) {
+    size_t length = 0;
+    uint8_t opcode = 0;
+
+    // 1. Skip legacy prefixes
+
+    // 2. Check for REX prefix (0x40-0x4F)
+    if (*instr_ptr >= 0x40 && *instr_ptr <= 0x4F) {
+        length++;
+        instr_ptr++;
+    }
+
+    // 3. Get the primary opcode
+    opcode = *instr_ptr;
+    length++;
+    instr_ptr++;
+
+    // 4. Skip multi-byte opcodes (e.g., 0x0F)
+
+    // 5. Check for a ModR/M byte. Skips a table check.
+    if (opcode == 0x89 || opcode == 0x8B || (opcode >= 0xC6 && opcode <= 0xC7)) {
+        uint8_t modrm = *instr_ptr;
+        length++;
+        instr_ptr++;
+
+        uint8_t mod = modrm >> 6;
+
+        // Check for SIB byte
+        if (mod != 3 && (modrm & 0x07) == 4) {
+            length++;
+            instr_ptr++;
+        }
+
+        // Check for displacement
+        if (mod == 1) { // 8-bit displacement
+            length += 1;
+        } else if (mod == 2 || (mod == 0 && (modrm & 0x07) == 5)) { // 32-bit displacement
+            length += 4;
+        }
+    }
+    
+    // 6. Check for immediate values based on opcode.
+    // Skips a full opcode table for performance.
+    if (opcode == 0xC7) {
+        length += 4;
+    }
+
+    // Fallback for unknown opcodes (each is 1-15 bytes)
+    if (length == 0 || length > 15) return 1;
+
+    return length;
+}
+
 #endif

@@ -29,13 +29,13 @@
 #define MK_ADAPTIVE_ALPHA_LONG 50
 
 // The threshold (EMA_short - EMA_long) to trigger an anomaly.
-#define MK_ADAPTIVE_DETECT_THRESHOLD 1500
+#define MK_ADAPTIVE_DETECT_THRESHOLD 500
 
 // The number of consecutive ticks an anomaly must be detected to trigger action.
 #define MK_ADAPTIVE_DETECT_K 2
 
 // The duration of a mitigation action epoch in milliseconds.
-#define MK_ADAPTIVE_EPOCH_MS 1000
+#define MK_ADAPTIVE_EPOCH_MS 10000
 
 // The rate at which Q-values decay towards zero over time.
 #define MK_ADAPTIVE_Q_DECAY_RATE 5
