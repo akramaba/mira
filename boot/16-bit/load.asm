@@ -21,6 +21,15 @@ disk_address_packet:
 load_bios:
     pushad
 
+    ; For real hardware, reset the disk system for reliability
+    pusha                   ; Save registers to prevent int 13h clobbering them
+    mov ah, 0x00            ; Function: Reset Disk System
+    mov dl, byte [boot_drive]
+    int 0x13
+    popa
+    
+    jc bios_disk_error      ; Carry set indicates error
+
     mov edi, edx ; Store the linear destination address in EDI
 
 .load_loop:
