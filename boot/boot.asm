@@ -12,9 +12,19 @@ begin_real:
 
 [bits 16]
 
+; For real hardware compatibility, enable A20
+; to wrap around the 1MB memory limit.
+mov ax, 0x2401 ; Function: Enable A20 Gate
+int 0x15
+
 ; Initialize the base pointer and the stack pointer
-mov bp, 0x0500
+mov bp, 0x7C00
 mov sp, bp
+
+; Initialize segment registers to a known state
+xor ax, ax
+mov ds, ax
+mov es, ax
 
 ; Save the boot drive ID
 mov byte[boot_drive], dl
