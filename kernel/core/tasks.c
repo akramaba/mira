@@ -98,3 +98,15 @@ mk_task** mk_get_tasks() {
 int mk_get_task_count() {
     return mk_tasks_count;
 }
+
+int mk_get_active_task_count() {
+    int count = 0;
+
+    for (int i = 0; i < mk_tasks_count; i++) {
+        if (mk_tasks[i] && mk_tasks[i]->status == MK_TASKS_RUNNING) {
+            count++;
+        }
+    }
+
+    return count;
+}

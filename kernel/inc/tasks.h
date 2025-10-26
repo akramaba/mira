@@ -64,4 +64,6 @@ mk_task** mk_get_tasks();
 
 int mk_get_task_count();
 
+int mk_get_active_task_count();
+
 #endif

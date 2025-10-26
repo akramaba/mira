@@ -61,7 +61,17 @@ static inline void m2d_draw_pixel(m2d_context* ctx, int x, int y, uint32_t color
     }
 }
 
-static inline void m2d_draw_line(m2d_context* ctx, int x0, int y0, int x1, int y1, uint32_t color) {
+static inline void m2d_draw_line(m2d_context* ctx, int x0, int y0, int x1, int y1, int width, uint32_t color) {
+    int orig_x0 = x0;
+    int orig_y0 = y0;
+    int orig_x1 = x1;
+    int orig_y1 = y1;
+
+    // Recursive end case
+    if (width < 1) {
+        return;
+    }
+
     int dx = x1 - x0;
     int dy = y1 - y0;
     int abs_dx = dx > 0 ? dx : -dx;
@@ -78,6 +88,18 @@ static inline void m2d_draw_line(m2d_context* ctx, int x0, int y0, int x1, int y
         if (e2 > -abs_dx) { err -= abs_dy; x0 += sx; }
         if (e2 < abs_dy) { err += abs_dx; y0 += sy; }
     }
+
+    int offset_x = 0;
+    int offset_y = 0;
+
+    if (abs_dx > abs_dy) {
+        offset_y = 1; 
+    } else {
+        offset_x = 1;
+    }
+
+    // Recursively draw the next line for thickness
+    m2d_draw_line(ctx, orig_x0 + offset_x, orig_y0 + offset_y, orig_x1 + offset_x, orig_y1 + offset_y, width - 1, color);
 }
 
 // Rectangles //
@@ -192,6 +214,48 @@ static inline void m2d_draw_rounded_rect(m2d_context* ctx, int x, int y, int wid
 
 // Images //
 
-// Text //
+static inline void m2d_draw_image(m2d_context* ctx, const char* asset_name, int x, int y) {
+    uint32_t asset_size = 0;
+
+    const uint8_t* data = (const uint8_t*)mira_get_asset(asset_name, &asset_size);
+    
+    // Check for at least existence and a proper header
+    if (!data || asset_size < 8) {
+        return;
+    }
+    
+    // ? .mi files have the width and height as the first 8 bytes
+    const uint32_t img_width = *(const uint32_t*)(&data[0]);
+    const uint32_t img_height = *(const uint32_t*)(&data[4]);
+
+    // Validate data size (no buffer overrun!)
+    uint32_t expected_size = 8 + (img_width * img_height * 4);
+    if (asset_size < expected_size) {
+        return;
+    }
+
+    const uint32_t* pixel_data = (const uint32_t*)(&data[8]);
+
+    for (int row = 0; row < img_height; row++) {
+        int screen_y = y + row;
+
+        // Clip Y (skip rows outside the context)
+        if (screen_y < 0 || screen_y >= ctx->height) {
+            continue;
+        }
+
+        for (int col = 0; col < img_width; col++) {
+            int screen_x = x + col;
+
+            // Clip X (skip pixels outside the context)
+            if (screen_x < 0 || screen_x >= ctx->width) {
+                continue;
+            }
+            
+            uint32_t color = pixel_data[row * img_width + col];
+            ctx->framebuffer[screen_y * ctx->width + screen_x] = color;
+        }
+    }
+}
 
 #endif

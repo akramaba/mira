@@ -8,6 +8,9 @@
 // Status add-on ...
 #include "apps/status.h"
 
+// Global counter for latency value
+volatile uint64_t g_last_benign_latency = 0;
+
 // Graphical context for displaying information
 static m2d_context* ctx = NULL;
 
@@ -37,7 +40,7 @@ int ms_display_manager_entry(void) {
 // Test Case 1: A harmless, long-running application.
 // The Sentient Kernel should never terminate this task.
 int ms_benign_task_entry(void) {
-    uint64_t start_time, end_time, latency;
+    uint64_t start_time, end_time;
     char latency_buffer[21];
 
     while (1) {
@@ -48,8 +51,8 @@ int ms_benign_task_entry(void) {
         end_time = mira_rdtsc();
 
         // Calculate and print the latency in raw CPU ticks.
-        latency = end_time - start_time;
-        u64toa(latency, latency_buffer);
+        g_last_benign_latency = end_time - start_time;
+        u64toa(g_last_benign_latency, latency_buffer);
         mira_print("Benign Task: Still running... (Latency: ", 0);
         mira_print(latency_buffer, 0);
         mira_print(" ticks)\n", 0);

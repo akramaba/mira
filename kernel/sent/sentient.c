@@ -282,7 +282,7 @@ int mk_apoptosis_worker_entry(void) {
 
 // Mira Kernel Sentient Apoptosis
 void mk_sentient_apoptosis(mk_task* task) {
-    mk_dbg_print("Mira Apoptosis: Triggered. Initiating controlled termination.\n");
+    mk_dbg_print("Mira Apoptosis: Triggered. Starting controlled termination.\n");
 
     // We mark the task as MK_TASKS_ZOMBIE
     // so the scheduler will skip it.
