@@ -4,6 +4,7 @@
 #include "../inc/win.h"
 #include "../inc/scheduler.h"
 #include "../inc/idt.h"
+#include "../inc/assets.h"
 #include "../inc/dbg.h"
 #include "../inc/util.h"
 #include "../inc/mem.h"
@@ -138,13 +139,21 @@ long mk_syscall_sleep(mk_syscall_args *args) {
 // Mira System Call Get System Info
 long mk_syscall_get_system_info(mk_syscall_args *args) {
     uint64_t exceptions = mk_idt_total_exceptions;
-    uint32_t task_count = (uint32_t)mk_get_task_count();
+    uint32_t task_count = (uint32_t)mk_get_active_task_count();
     
     // * Combine them into a single 64-bit 'long' return value.
     // * Packing: [ Upper 32 bits: task_count | Lower 32 bits: exceptions ]
     long result = ((long)task_count << 32) | (exceptions & 0xFFFFFFFF);
 
     return result;
+}
+
+long mk_syscall_get_asset(mk_syscall_args *args) {
+    const char* name = (const char*)args->arg1;
+    uint32_t* out_size = (uint32_t*)args->arg2;
+
+    const char* asset_ptr = mk_get_asset(name, out_size);
+    return (long)asset_ptr;
 }
 
 // Mira System Call Function Definition & Table
@@ -161,7 +170,8 @@ const mk_syscall_func syscall_table[] = {
     mk_syscall_rdtsc, // Get RDTSC value
     mk_syscall_read_log, // Read debug log
     mk_syscall_sleep, // Sleep for a set time
-    mk_syscall_get_system_info // Get system information
+    mk_syscall_get_system_info, // Get system information
+    mk_syscall_get_asset // Get an asset by name
 };
 
 // Mira System Call Dispatcher

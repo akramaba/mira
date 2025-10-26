@@ -3,13 +3,14 @@
 
 #include "../inc/mira2d.h"
 #include "../inc/font.h"
+#include "../inc/font_24.h"
 #include "../inc/string.h"
 
 // Console Design
-#define CONSOLE_X 722
-#define CONSOLE_Y 18
-#define CONSOLE_WIDTH 537
-#define CONSOLE_HEIGHT 684
+#define CONSOLE_X 610
+#define CONSOLE_Y 57
+#define CONSOLE_WIDTH 650
+#define CONSOLE_HEIGHT 645
 #define CONSOLE_RADIUS 18
 #define CONSOLE_PADDING 12
 #define CONSOLE_BG_COLOR 0x171717
@@ -21,7 +22,7 @@
 
 // Text buffer constants
 #define CONSOLE_BUFFER_LINES 4096
-#define CONSOLE_LINE_CHARS 52
+#define CONSOLE_LINE_CHARS 61
 
 // Internal state for the console modul
 static m2d_context* g_console_ctx = NULL;
@@ -70,6 +71,11 @@ static inline void console_log(const char* text) {
 static inline void console_draw(void) {
     if (!g_console_ctx) return;
 
+    // Title
+    ms_font_24_draw_string(g_console_ctx, "Debug Logs", 661, 11, M2D_COLOR_WHITE);
+    // Icon
+    m2d_draw_image(g_console_ctx, "MiraDebugLogs.mi", 610, 10);
+
     // Draw the new rounded rectangle background
     m2d_draw_rounded_rect(g_console_ctx, CONSOLE_X, CONSOLE_Y, CONSOLE_WIDTH, CONSOLE_HEIGHT, CONSOLE_RADIUS, CONSOLE_BG_COLOR);
 
@@ -84,7 +90,7 @@ static inline void console_draw(void) {
             
             // Only draw text if it's within the padded vertical area
             if (text_y < (CONSOLE_Y + CONSOLE_HEIGHT - CONSOLE_PADDING)) {
-                ms_font_draw_string(g_console_ctx, g_console_buffer[buffer_index], text_x, text_y, 0xFFFFFF);
+                ms_font_draw_string(g_console_ctx, g_console_buffer[buffer_index], text_x, text_y, M2D_COLOR_WHITE);
             }
         }
     }

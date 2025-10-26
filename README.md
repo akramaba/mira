@@ -1,6 +1,8 @@
 <div align="center">
-<img src="https://i.ibb.co/prR8ZBhY/mira.png" alt="Mira Logo" />
+<img src="shell.png" alt="Mira Sentient System - Graphical User-Space Panel" />
 </div>
+
+<br/>
 
 <h1 align="center">Mira OS</h1>
 <p align="center">

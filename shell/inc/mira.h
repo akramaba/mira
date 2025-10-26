@@ -190,4 +190,19 @@ static inline long mira_get_system_info(uint32_t* task_count, uint32_t* exceptio
     *task_count = (uint32_t)(ret >> 32);
 }
 
+// Mira Get Asset Function
+static inline const char* mira_get_asset(const char* name, uint32_t* out_size) {
+    uint64_t ret;
+
+    __asm__ volatile (
+        "mov $12, %%rax\n\t"
+        "int $0x80"
+        : "=a"(ret)
+        : "D"(name), "S"(out_size)
+        : "rcx", "r11", "memory"
+    );
+
+    return (const char*)ret;
+}
+
 #endif
