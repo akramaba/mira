@@ -48,10 +48,10 @@ then
     cat kernel/kernel.bin >> build/mira.img
 
     echo "Build finished successfully"
-
-    sh clean.sh
     
     sh debug.sh
+
+    sh clean.sh
 else
     result=`expr $boot_result + $make_result`
     echo "Build failed with error code $result. See output for more info."

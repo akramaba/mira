@@ -18,8 +18,8 @@ LDFLAGS = -Ttext 0x8200
 LDFLAGS_BIN = ${LDFLAGS} --oformat binary
 ASFLAGS = -f elf64
 
-# Default target for kernel (produce kernel.bin instead of kernel)
-all: kernel.bin
+# Default target for kernel (.elf is for GDB)
+all: kernel.bin kernel.elf
 
 # Build kernel.bin (binary format)
 kernel.bin: ${OBJ}
@@ -27,7 +27,7 @@ kernel.bin: ${OBJ}
 
 # Optional: Keep kernel.elf for debugging or other purposes
 kernel.elf: ${OBJ}
-	${LD} -o $@ ${LDFLAGS} $^
+	${LD} -o $@ ${LDFLAGS} $^ ${SHELL_OBJ}
 
 %.o: %.c
 	${CC} ${CCFLAGS} ${INC} -o $@ $^
