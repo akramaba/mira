@@ -2,8 +2,6 @@
 <img src="shell.png" alt="Mira Sentient System - Graphical User-Space Panel" />
 </div>
 
-<br/>
-
 <h1 align="center">Mira OS</h1>
 <p align="center">
   <strong>A complete 64-bit graphical operating system, built from scratch in C and Assembly.</strong>
@@ -61,4 +59,5 @@ cd mira
 
 # Build and run the "Sentient" experiment (will survive the attack)
 ./build.sh sentient
+
 ```
