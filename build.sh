@@ -39,10 +39,10 @@ then
     kernel_size=$(wc -c < kernel/kernel.bin)
     kernel_sectors=$(( ($kernel_size + 511) / 512 ))
 
-    # * Changed from byte to word, so this gets
-    # * more complex from writing the sector count.
-    printf "\\x$(printf '%02x' $((kernel_sectors & 0xff)))\\x$(printf '%02x' $((kernel_sectors >> 8)))" | \
-    dd of=boot/boot.bin bs=1 seek=2 count=2 conv=notrunc
+    # Had a problem with the special characters in the older command
+    # breaking and causing Mira to not boot because it was trying to read
+    # too many sectors. This line fixes that, but it's not as "elegant."
+    python3 -c "import struct; f=open('boot/boot.bin','r+b'); f.seek(2); f.write(struct.pack('<H', $kernel_sectors)); f.close()"
 
     cp boot/boot.bin ./build/mira.img
     cat kernel/kernel.bin >> build/mira.img

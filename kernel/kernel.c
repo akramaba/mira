@@ -4,6 +4,7 @@
 #include "inc/gdt.h"
 #include "inc/assets.h"
 #include "inc/vbe.h"
+#include "inc/sound.h"
 #include "inc/sentient.h"
 #include "inc/adaptive.h"
 #include "inc/dbg.h"
@@ -17,13 +18,35 @@ int mk_entry() {
     mk_assets_init();
     mk_keyboard_init();
     mk_mouse_init();
+    mk_snd_init();
     mk_vbe_init();
 #ifdef CONFIG_SENTIENT
     mk_sentient_init();
     mk_adaptive_init();
 #endif
     mk_dbg_init();
-    
+
+    // Audio test
+
+    uint32_t pcm_size = 0;
+    const char *pcm = mk_get_asset("MiraTestAudio.pcm", &pcm_size);
+
+    if (pcm && pcm_size > 0) {
+        uint32_t chunk = 64 * 1024;
+
+        while (1) {
+            for (uint32_t off = 0; off < pcm_size; off += chunk) {
+                uint32_t len = pcm_size - off;
+
+                if (len > chunk) {
+                    len = chunk;
+                }
+
+                mk_snd_play(pcm + off, len);
+            }
+        }
+    }
+
     // Create a task for the Mira Shell
     // We use a function pointer directly
     mk_task *shell_task = mk_create_task_from_function(ms_entry, "Mira Shell");

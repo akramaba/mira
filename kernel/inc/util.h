@@ -11,9 +11,33 @@ static inline uint8_t mk_util_inb(uint16_t port) {
     return ret;
 }
 
-// Mira Kernel Input Byte
+// Mira Kernel Output Byte
 static inline void mk_util_outb(uint16_t port, uint8_t val) {
     __asm__ volatile ("outb %0, %1" : : "a"(val), "Nd"(port));
+}
+
+// Mira Kernel Input Word (16-bit)
+static inline uint16_t mk_util_inw(uint16_t port) {
+    uint16_t ret;
+    __asm__ volatile ("inw %1, %0" : "=a"(ret) : "Nd"(port));
+    return ret;
+}
+
+// Mira Kernel Output Word (16-bit)
+static inline void mk_util_outw(uint16_t port, uint16_t val) {
+    __asm__ volatile ("outw %0, %1" : : "a"(val), "Nd"(port));
+}
+
+// Mira Kernel Input Long (32-bit)
+static inline uint32_t mk_util_inl(uint16_t port) {
+    uint32_t ret;
+    __asm__ volatile ("inl %1, %0" : "=a"(ret) : "Nd"(port));
+    return ret;
+}
+
+// Mira Kernel Output Long (32-bit)
+static inline void mk_util_outl(uint16_t port, uint32_t val) {
+    __asm__ volatile ("outl %0, %1" : : "a"(val), "Nd"(port));
 }
 
 // Mira Kernel Sleep Function
