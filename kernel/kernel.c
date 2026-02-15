@@ -8,10 +8,12 @@
 #include "inc/sentient.h"
 #include "inc/adaptive.h"
 #include "inc/dbg.h"
+#include "inc/mem.h"
 
 extern int ms_entry();
 
 int mk_entry() {
+    mk_slab_init();
     // Initialize the kernel components
     mk_gdt_init();
     mk_idt_init();
@@ -25,27 +27,6 @@ int mk_entry() {
     mk_adaptive_init();
 #endif
     mk_dbg_init();
-
-    // Audio test
-
-    uint32_t pcm_size = 0;
-    const char *pcm = mk_get_asset("MiraTestAudio.pcm", &pcm_size);
-
-    if (pcm && pcm_size > 0) {
-        uint32_t chunk = 64 * 1024;
-
-        while (1) {
-            for (uint32_t off = 0; off < pcm_size; off += chunk) {
-                uint32_t len = pcm_size - off;
-
-                if (len > chunk) {
-                    len = chunk;
-                }
-
-                mk_snd_play(pcm + off, len);
-            }
-        }
-    }
 
     // Create a task for the Mira Shell
     // We use a function pointer directly
