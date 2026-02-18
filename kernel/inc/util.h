@@ -46,6 +46,16 @@ static inline void mk_util_sleep(uint64_t ms) {
     while (mk_pit_get_tick_count() < start + ms);
 }
 
+// Mira Kernel Port Delay Function
+// Useful if PIT is unavailable. Port 0x80 read is ~1us on x86.
+static void mk_util_port_delay(uint32_t ms) {
+    for (uint32_t i = 0; i < ms; i++) {
+        for (uint32_t j = 0; j < 10000; j++) {
+            mk_util_inb(0x80);
+        }
+    }
+}
+
 // Mira Kernel Print Function
 // Scrolling and newlines are handled.
 static inline void mk_util_print(const char* str) {

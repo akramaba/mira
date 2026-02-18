@@ -12,17 +12,6 @@ static mk_snd_hda_state_t hda;
 #define MK_SND_HDA_BDL_ENTRIES 1
 #define MK_SND_HDA_MAX_TIMEOUT_MS 500
 
-// * General Helpers * //
-
-// PIT unavailable during early init. Port 0x80 read is ~1us on x86.
-static void mk_snd_hda_delay_ms(uint32_t ms) {
-    for (uint32_t i = 0; i < ms; i++) {
-        for (uint32_t j = 0; j < 1000; j++) {
-            mk_util_inb(0x80);
-        }
-    }
-}
-
 // * MMIO Access Helpers * //
 
 static inline uint8_t mk_snd_hda_reg8(uint32_t off) {
@@ -187,7 +176,7 @@ static int mk_snd_stream_reset(void) {
                 break;
             }
 
-            mk_snd_hda_delay_ms(1);
+            mk_util_port_delay(1);
         }
     }
 
@@ -198,7 +187,7 @@ static int mk_snd_stream_reset(void) {
             break;
         }
 
-        mk_snd_hda_delay_ms(1);
+        mk_util_port_delay(1);
     }
 
     if (!(mk_snd_sd_reg8(MK_SND_HDA_SD_CTL) & MK_SND_HDA_SDCTL_SRST)) [[unlikely]] {
@@ -212,7 +201,7 @@ static int mk_snd_stream_reset(void) {
             break;
         }
 
-        mk_snd_hda_delay_ms(1);
+        mk_util_port_delay(1);
     }
 
     if (mk_snd_sd_reg8(MK_SND_HDA_SD_CTL) & MK_SND_HDA_SDCTL_SRST) [[unlikely]] {
@@ -235,7 +224,7 @@ static int mk_snd_corb_rirb_init(void) {
             break;
         }
 
-        mk_snd_hda_delay_ms(1);
+        mk_util_port_delay(1);
     }
 
     // Negotiate size. QEMU supports 256.
@@ -273,7 +262,7 @@ static int mk_snd_corb_rirb_init(void) {
             break;
         }
 
-        mk_snd_hda_delay_ms(1);
+        mk_util_port_delay(1);
     }
 
     // Clear reset bit.
@@ -283,7 +272,7 @@ static int mk_snd_corb_rirb_init(void) {
             break;
         }
 
-        mk_snd_hda_delay_ms(1);
+        mk_util_port_delay(1);
     }
 
     mk_snd_hda_write16(MK_SND_HDA_REG_CORBWP, 0);
@@ -294,7 +283,7 @@ static int mk_snd_corb_rirb_init(void) {
             break;
         }
 
-        mk_snd_hda_delay_ms(1);
+        mk_util_port_delay(1);
     }
 
     // Setup RIRB
@@ -305,7 +294,7 @@ static int mk_snd_corb_rirb_init(void) {
             break;
         }
 
-        mk_snd_hda_delay_ms(1);
+        mk_util_port_delay(1);
     }
 
     uint8_t rirbsize_reg = mk_snd_hda_reg8(MK_SND_HDA_REG_RIRBSIZE);
@@ -351,7 +340,7 @@ static int mk_snd_corb_rirb_init(void) {
             break;
         }
 
-        mk_snd_hda_delay_ms(1);
+        mk_util_port_delay(1);
     }
 
     return 0;
@@ -395,7 +384,7 @@ static int mk_snd_codec_verb(uint32_t verb, uint32_t *response) {
             return 0;
         }
 
-        mk_snd_hda_delay_ms(1);
+        mk_util_port_delay(1);
     }
 
     return -1; // Timeout.
@@ -495,7 +484,7 @@ static int mk_snd_probe_codec(void) {
     }
 
     mk_snd_codec_set_verb12(hda.afg_nid, MK_SND_HDA_VERB_SET_POWER_STATE, 0x00); // D0 (Active).
-    mk_snd_hda_delay_ms(20); // Needs time to transition from D3 (Power Off) to D0 (Active).
+    mk_util_port_delay(20); // Needs time to transition from D3 (Power Off) to D0 (Active).
 
     if (mk_snd_codec_get_param(hda.afg_nid, MK_SND_HDA_PARAM_SUBNODE_COUNT, &val) < 0) [[unlikely]] {
         return -1;
@@ -518,7 +507,7 @@ static int mk_snd_probe_codec(void) {
         uint8_t nid = w_start + i;
 
         mk_snd_codec_set_verb12(nid, MK_SND_HDA_VERB_SET_POWER_STATE, 0x00);
-        mk_snd_hda_delay_ms(2);
+        mk_util_port_delay(2);
 
         int wtype = mk_snd_widget_type(nid);
 
@@ -752,14 +741,14 @@ static int mk_snd_controller_reset(void) {
             break;
         }
 
-        mk_snd_hda_delay_ms(1);
+        mk_util_port_delay(1);
     }
 
     if (mk_snd_hda_reg32(MK_SND_HDA_REG_GCTL) & MK_SND_HDA_GCTL_CRST) [[unlikely]] {
         return -1; // Reset failed.
     }
 
-    mk_snd_hda_delay_ms(10);
+    mk_util_port_delay(10);
 
     // Deassert reset (1).
     mk_snd_hda_write32(MK_SND_HDA_REG_GCTL, mk_snd_hda_reg32(MK_SND_HDA_REG_GCTL) | MK_SND_HDA_GCTL_CRST);
@@ -769,7 +758,7 @@ static int mk_snd_controller_reset(void) {
             break;
         }
 
-        mk_snd_hda_delay_ms(1);
+        mk_util_port_delay(1);
     }
 
     if (!(mk_snd_hda_reg32(MK_SND_HDA_REG_GCTL) & MK_SND_HDA_GCTL_CRST)) [[unlikely]] {
@@ -780,13 +769,13 @@ static int mk_snd_controller_reset(void) {
     mk_snd_hda_write32(MK_SND_HDA_REG_INTCTL, MK_SND_HDA_INTCTL_GIE | MK_SND_HDA_INTCTL_CIE);
 
     // Wait for codec wake up (STATESTS).
-    mk_snd_hda_delay_ms(50);
+    mk_util_port_delay(50);
     for (int i = 0; i < MK_SND_HDA_MAX_TIMEOUT_MS; i++) {
         if (mk_snd_hda_reg16(MK_SND_HDA_REG_STATESTS)) [[likely]] {
             break;
         }
 
-        mk_snd_hda_delay_ms(1);
+        mk_util_port_delay(1);
     }
 
     uint16_t statests = mk_snd_hda_reg16(MK_SND_HDA_REG_STATESTS);
@@ -860,6 +849,9 @@ int mk_snd_init(void) {
 
 // Mira Kernel Sound Play
 // Plays audio data.
+// TODO: Support streaming better, as this function resets the stream and 
+// stops at the end per call. Both are currently commented out so that the
+// audio testing with UDP packets sounds smooth (works, but still check this).
 int mk_snd_play(const void *data, uint32_t size) {
     if (!hda.initialized || size == 0 || data == NULL) [[unlikely]] {
         return -1;
@@ -869,9 +861,9 @@ int mk_snd_play(const void *data, uint32_t size) {
         size = hda.dma_buf_size;
     }
 
-    if (mk_snd_stream_reset() < 0) [[unlikely]] {
-        return -1;
-    }
+    // if (mk_snd_stream_reset() < 0) [[unlikely]] {
+    //     return -1;
+    // }
 
     mk_memcpy(hda.dma_buf, data, size);
 
@@ -899,18 +891,18 @@ int mk_snd_play(const void *data, uint32_t size) {
             break;
         }
 
-        mk_snd_hda_delay_ms(1);
+        mk_util_port_delay(1);
     }
 
     // Stop.
-    mk_snd_sd_write8(MK_SND_HDA_SD_CTL, mk_snd_sd_reg8(MK_SND_HDA_SD_CTL) & ~MK_SND_HDA_SDCTL_RUN);
-    for (int i = 0; i < MK_SND_HDA_MAX_TIMEOUT_MS; i++) {
-        if (!(mk_snd_sd_reg8(MK_SND_HDA_SD_CTL) & MK_SND_HDA_SDCTL_RUN)) [[likely]] {
-            break;
-        }
+    // mk_snd_sd_write8(MK_SND_HDA_SD_CTL, mk_snd_sd_reg8(MK_SND_HDA_SD_CTL) & ~MK_SND_HDA_SDCTL_RUN);
+    // for (int i = 0; i < MK_SND_HDA_MAX_TIMEOUT_MS; i++) {
+    //     if (!(mk_snd_sd_reg8(MK_SND_HDA_SD_CTL) & MK_SND_HDA_SDCTL_RUN)) [[likely]] {
+    //         break;
+    //     }
 
-        mk_snd_hda_delay_ms(1);
-    }
+    //     mk_util_port_delay(1);
+    // }
 
     mk_snd_sd_write8(MK_SND_HDA_SD_STS, MK_SND_HDA_SDSTS_BCIS | MK_SND_HDA_SDSTS_FIFOE | MK_SND_HDA_SDSTS_DESE);
 

@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 #define MK_HEAP_START 0x910000 // Starts 40KiB after the 24KiB page tables
-#define MK_HEAP_SIZE (1024 * 1024 * 4)
+#define MK_HEAP_SIZE (1024 * 1024 * 128)
 
 // * Slab Allocator * //
 

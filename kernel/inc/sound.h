@@ -34,7 +34,7 @@
 #define MK_SND_HDA_REG_INTCTL 0x20
 #define MK_SND_HDA_REG_INTSTS 0x24
 
-#define MK_SND_HDA_REG_WALCLK 0x30 // Ticks at 24MHz. Useful if Mira ever needs it.
+#define MK_SND_HDA_REG_WALCLK 0x30 // Ticks at 24MHz.
 #define MK_SND_HDA_REG_SSYNC 0x38
 
 // GCTL bits
@@ -84,7 +84,7 @@
 #define MK_SND_HDA_SD_LVI 0x0C // Last Valid Index (BDL entry count - 1).
 #define MK_SND_HDA_SD_FIFOS 0x10
 #define MK_SND_HDA_SD_FMT 0x12
-#define MK_SND_HDA_SD_BDLPL 0x18 // 128-byte aligned.
+#define MK_SND_HDA_SD_BDLPL 0x18
 #define MK_SND_HDA_SD_BDLPU 0x1C
 
 // SD CTL
@@ -156,8 +156,7 @@
 #define MK_SND_HDA_PIN_CTRL_IN_EN (1 << 5)
 #define MK_SND_HDA_PIN_CTRL_HP_EN (1 << 7)
 
-// External Amplifier Power Down (EAPD)
-// Often required on laptops to hear anything.
+// External Amplifier Power Down
 #define MK_SND_HDA_EAPD_BTL_ENABLE (1 << 1)
 
 // * BDL Entry (Scatter/Gather) * //
@@ -191,9 +190,8 @@ typedef struct {
     uint16_t rirb_rp; // Driver's shadow read pointer.
 
     // Node Graph
-    // We grab the first output pin in the first group.
-    uint8_t codec_addr; // From testing, this is usually 0, sometimes 2.
-    uint8_t afg_nid; // Root of the function group.
+    uint8_t codec_addr;
+    uint8_t afg_nid;
     uint8_t dac_nid;
     uint8_t pin_nid;
     uint8_t dac_conn_idx; // Mux index if DAC isn't 0th connection.
