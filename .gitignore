@@ -1,5 +1,8 @@
-# Ignore generated binary file
-build/mira.img
+# Ignore binary files
+*.img
+*.bin
+*.o
+*.elf
 
 # Ignore editor files/folders
 .vscode/

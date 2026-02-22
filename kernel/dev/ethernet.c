@@ -148,7 +148,7 @@ static int mk_eth_reset(void) {
 
     // Poll until reset clears.
     for (int i = 0; i < MK_ETH_MAX_TIMEOUT_MS; i++) {
-        if (!(mk_eth_reg32(MK_ETH_REG_CTRL) & MK_ETH_CTRL_RST)) [[likely]] {
+        if (!(mk_eth_reg32(MK_ETH_REG_CTRL) & MK_ETH_CTRL_RST)) [[unlikely]] {
             break;
         }
 
@@ -180,7 +180,7 @@ static uint16_t mk_eth_eeprom_read(uint8_t addr) {
     for (int i = 0; i < MK_ETH_MAX_TIMEOUT_MS; i++) {
         uint32_t val = mk_eth_reg32(MK_ETH_REG_EERD);
 
-        if (val & MK_ETH_EERD_DONE) [[likely]] {
+        if (val & MK_ETH_EERD_DONE) [[unlikely]] {
             return (uint16_t)(val >> MK_ETH_EERD_DATA_SHIFT);
         }
 
@@ -334,7 +334,7 @@ static int mk_eth_link_up(void) {
     mk_eth_write32(MK_ETH_REG_CTRL, ctrl);
 
     for (int i = 0; i < MK_ETH_MAX_TIMEOUT_MS; i++) {
-        if (mk_eth_reg32(MK_ETH_REG_STATUS) & MK_ETH_STATUS_LU) [[likely]] {
+        if (mk_eth_reg32(MK_ETH_REG_STATUS) & MK_ETH_STATUS_LU) [[unlikely]] {
             return 0;
         }
 
@@ -415,7 +415,7 @@ static int mk_eth_transmit(const void *frame, uint16_t len) {
     mk_eth_write32(MK_ETH_REG_TDT, eth.tx_cur);
 
     for (int i = 0; i < MK_ETH_MAX_TIMEOUT_MS; i++) {
-        if (eth.tx_descs[cur].sta & MK_ETH_TDESC_STA_DD) [[likely]] {
+        if (eth.tx_descs[cur].sta & MK_ETH_TDESC_STA_DD) [[unlikely]] {
             return 0;
         }
 
@@ -764,7 +764,7 @@ int mk_eth_send(mk_eth_socket_t *sock, const char *ip, uint16_t port, const void
 
     // Poll for completion.
     for (int i = 0; i < MK_ETH_MAX_TIMEOUT_MS; i++) {
-        if (eth.tx_descs[cur].sta & MK_ETH_TDESC_STA_DD) [[likely]] {
+        if (eth.tx_descs[cur].sta & MK_ETH_TDESC_STA_DD) [[unlikely]] {
             return 0;
         }
 

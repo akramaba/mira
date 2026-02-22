@@ -172,7 +172,7 @@ static int mk_snd_stream_reset(void) {
         mk_snd_sd_write8(MK_SND_HDA_SD_CTL, ctl & ~MK_SND_HDA_SDCTL_RUN);
 
         for (int i = 0; i < MK_SND_HDA_MAX_TIMEOUT_MS; i++) {
-            if (!(mk_snd_sd_reg8(MK_SND_HDA_SD_CTL) & MK_SND_HDA_SDCTL_RUN)) [[likely]] {
+            if (!(mk_snd_sd_reg8(MK_SND_HDA_SD_CTL) & MK_SND_HDA_SDCTL_RUN)) [[unlikely]] {
                 break;
             }
 
@@ -183,7 +183,7 @@ static int mk_snd_stream_reset(void) {
     // Assert reset.
     mk_snd_sd_write8(MK_SND_HDA_SD_CTL, MK_SND_HDA_SDCTL_SRST);
     for (int i = 0; i < MK_SND_HDA_MAX_TIMEOUT_MS; i++) {
-        if (mk_snd_sd_reg8(MK_SND_HDA_SD_CTL) & MK_SND_HDA_SDCTL_SRST) [[likely]] {
+        if (mk_snd_sd_reg8(MK_SND_HDA_SD_CTL) & MK_SND_HDA_SDCTL_SRST) [[unlikely]] {
             break;
         }
 
@@ -197,7 +197,7 @@ static int mk_snd_stream_reset(void) {
     // Deassert reset.
     mk_snd_sd_write8(MK_SND_HDA_SD_CTL, 0);
     for (int i = 0; i < MK_SND_HDA_MAX_TIMEOUT_MS; i++) {
-        if (!(mk_snd_sd_reg8(MK_SND_HDA_SD_CTL) & MK_SND_HDA_SDCTL_SRST)) [[likely]] {
+        if (!(mk_snd_sd_reg8(MK_SND_HDA_SD_CTL) & MK_SND_HDA_SDCTL_SRST)) [[unlikely]] {
             break;
         }
 
@@ -220,7 +220,7 @@ static int mk_snd_corb_rirb_init(void) {
     // Stop DMA before touching pointers.
     mk_snd_hda_write8(MK_SND_HDA_REG_CORBCTL, mk_snd_hda_reg8(MK_SND_HDA_REG_CORBCTL) & ~MK_SND_HDA_CORBCTL_RUN);
     for (int i = 0; i < MK_SND_HDA_MAX_TIMEOUT_MS; i++) {
-        if (!(mk_snd_hda_reg8(MK_SND_HDA_REG_CORBCTL) & MK_SND_HDA_CORBCTL_RUN)) [[likely]] {
+        if (!(mk_snd_hda_reg8(MK_SND_HDA_REG_CORBCTL) & MK_SND_HDA_CORBCTL_RUN)) [[unlikely]] {
             break;
         }
 
@@ -258,7 +258,7 @@ static int mk_snd_corb_rirb_init(void) {
     // Reset Read Pointer. Must write 1 to bit 15.
     mk_snd_hda_write16(MK_SND_HDA_REG_CORBRP, MK_SND_HDA_CORBRP_RST);
     for (int i = 0; i < MK_SND_HDA_MAX_TIMEOUT_MS; i++) {
-        if (!(mk_snd_hda_reg16(MK_SND_HDA_REG_CORBRP) & MK_SND_HDA_CORBRP_RST)) [[likely]] {
+        if (!(mk_snd_hda_reg16(MK_SND_HDA_REG_CORBRP) & MK_SND_HDA_CORBRP_RST)) [[unlikely]] {
             break;
         }
 
@@ -268,7 +268,7 @@ static int mk_snd_corb_rirb_init(void) {
     // Clear reset bit.
     mk_snd_hda_write16(MK_SND_HDA_REG_CORBRP, 0);
     for (int i = 0; i < MK_SND_HDA_MAX_TIMEOUT_MS; i++) {
-        if (!(mk_snd_hda_reg16(MK_SND_HDA_REG_CORBRP) & MK_SND_HDA_CORBRP_RST)) [[likely]] {
+        if (!(mk_snd_hda_reg16(MK_SND_HDA_REG_CORBRP) & MK_SND_HDA_CORBRP_RST)) [[unlikely]] {
             break;
         }
 
@@ -279,7 +279,7 @@ static int mk_snd_corb_rirb_init(void) {
 
     mk_snd_hda_write8(MK_SND_HDA_REG_CORBCTL, MK_SND_HDA_CORBCTL_RUN);
     for (int i = 0; i < MK_SND_HDA_MAX_TIMEOUT_MS; i++) {
-        if (mk_snd_hda_reg8(MK_SND_HDA_REG_CORBCTL) & MK_SND_HDA_CORBCTL_RUN) [[likely]] {
+        if (mk_snd_hda_reg8(MK_SND_HDA_REG_CORBCTL) & MK_SND_HDA_CORBCTL_RUN) [[unlikely]] {
             break;
         }
 
@@ -290,7 +290,7 @@ static int mk_snd_corb_rirb_init(void) {
 
     mk_snd_hda_write8(MK_SND_HDA_REG_RIRBCTL, mk_snd_hda_reg8(MK_SND_HDA_REG_RIRBCTL) & ~MK_SND_HDA_RIRBCTL_RUN);
     for (int i = 0; i < MK_SND_HDA_MAX_TIMEOUT_MS; i++) {
-        if (!(mk_snd_hda_reg8(MK_SND_HDA_REG_RIRBCTL) & MK_SND_HDA_RIRBCTL_RUN)) [[likely]] {
+        if (!(mk_snd_hda_reg8(MK_SND_HDA_REG_RIRBCTL) & MK_SND_HDA_RIRBCTL_RUN)) [[unlikely]] {
             break;
         }
 
@@ -336,7 +336,7 @@ static int mk_snd_corb_rirb_init(void) {
     // INT bit required for RINTFL updates, even if Mira is polling.
     mk_snd_hda_write8(MK_SND_HDA_REG_RIRBCTL, MK_SND_HDA_RIRBCTL_RUN | MK_SND_HDA_RIRBCTL_INT);
     for (int i = 0; i < MK_SND_HDA_MAX_TIMEOUT_MS; i++) {
-        if (mk_snd_hda_reg8(MK_SND_HDA_REG_RIRBCTL) & MK_SND_HDA_RIRBCTL_RUN) [[likely]] {
+        if (mk_snd_hda_reg8(MK_SND_HDA_REG_RIRBCTL) & MK_SND_HDA_RIRBCTL_RUN) [[unlikely]] {
             break;
         }
 
@@ -369,7 +369,7 @@ static int mk_snd_codec_verb(uint32_t verb, uint32_t *response) {
 
     // Poll for hardware to writeback response.
     for (int i = 0; i < MK_SND_HDA_MAX_TIMEOUT_MS; i++) {
-        if (mk_snd_hda_reg8(MK_SND_HDA_REG_RIRBSTS) & MK_SND_HDA_RIRBSTS_RINTFL) [[likely]] {
+        if (mk_snd_hda_reg8(MK_SND_HDA_REG_RIRBSTS) & MK_SND_HDA_RIRBSTS_RINTFL) [[unlikely]] {
             uint16_t rp = (hda.rirb_rp + 1) % hda.rirb_entries;
 
             if (response) {
@@ -737,7 +737,7 @@ static int mk_snd_controller_reset(void) {
     mk_snd_hda_write32(MK_SND_HDA_REG_GCTL, mk_snd_hda_reg32(MK_SND_HDA_REG_GCTL) & ~MK_SND_HDA_GCTL_CRST);
 
     for (int i = 0; i < MK_SND_HDA_MAX_TIMEOUT_MS; i++) {
-        if (!(mk_snd_hda_reg32(MK_SND_HDA_REG_GCTL) & MK_SND_HDA_GCTL_CRST)) [[likely]] {
+        if (!(mk_snd_hda_reg32(MK_SND_HDA_REG_GCTL) & MK_SND_HDA_GCTL_CRST)) [[unlikely]] {
             break;
         }
 
@@ -754,7 +754,7 @@ static int mk_snd_controller_reset(void) {
     mk_snd_hda_write32(MK_SND_HDA_REG_GCTL, mk_snd_hda_reg32(MK_SND_HDA_REG_GCTL) | MK_SND_HDA_GCTL_CRST);
 
     for (int i = 0; i < MK_SND_HDA_MAX_TIMEOUT_MS; i++) {
-        if (mk_snd_hda_reg32(MK_SND_HDA_REG_GCTL) & MK_SND_HDA_GCTL_CRST) [[likely]] {
+        if (mk_snd_hda_reg32(MK_SND_HDA_REG_GCTL) & MK_SND_HDA_GCTL_CRST) [[unlikely]] {
             break;
         }
 
@@ -771,7 +771,7 @@ static int mk_snd_controller_reset(void) {
     // Wait for codec wake up (STATESTS).
     mk_util_port_delay(50);
     for (int i = 0; i < MK_SND_HDA_MAX_TIMEOUT_MS; i++) {
-        if (mk_snd_hda_reg16(MK_SND_HDA_REG_STATESTS)) [[likely]] {
+        if (mk_snd_hda_reg16(MK_SND_HDA_REG_STATESTS)) [[unlikely]] {
             break;
         }
 
@@ -887,7 +887,7 @@ int mk_snd_play(const void *data, uint32_t size) {
 
     // Blocking playback. A TODO is to get this setup with interrupts/scheduling.
     for (int i = 0; i < MK_SND_HDA_MAX_TIMEOUT_MS * 10; i++) {
-        if (mk_snd_sd_reg8(MK_SND_HDA_SD_STS) & MK_SND_HDA_SDSTS_BCIS) [[likely]] {
+        if (mk_snd_sd_reg8(MK_SND_HDA_SD_STS) & MK_SND_HDA_SDSTS_BCIS) [[unlikely]] {
             break;
         }
 
