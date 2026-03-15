@@ -4,6 +4,15 @@
 #include "../inc/vbe.h"
 #include "../inc/sentient.h"
 
+// Define MIRA2D_H so font.h doesn't try to include the shell graphics library
+#define MIRA2D_H
+typedef struct m2d_context m2d_context;
+static inline void m2d_draw_pixel(m2d_context* ctx, int x, int y, uint32_t color) {
+    (void)ctx;
+    mk_vbe_draw_pixel((uint32_t)x, (uint32_t)y, color);
+}
+#include "../../shell/inc/font.h"
+
 #define MK_IDT_ENTRIES 256
 mk_idt_entry_t mk_idt[MK_IDT_ENTRIES];
 mk_idt_ptr_t mk_idt_ptr;
@@ -80,16 +89,27 @@ void mk_idt_exception_handler(void) {
         }
     }
 
+    mk_task* current_task = mk_scheduler_get_current_task();
+
     // Print details to the debug console
     mk_dbg_print("Panic!\n");
     mk_dbg_print("Mira has encountered a fatal error and must halt.\n");
     mk_dbg_print("Current Task Name: ");
-    mk_task* current_task = mk_scheduler_get_current_task();
     if (current_task) {
         mk_dbg_print(current_task->name);
         mk_dbg_print("\n");
     } else {
         mk_dbg_print("[base kernel]\n");
+    }
+
+    // Draw the same panic details on-screen
+    ms_font_draw_string(NULL, "Panic!", 10, 10, 0xFFFFFF);
+    ms_font_draw_string(NULL, "Mira has encountered a fatal error and must halt.", 10, 50, 0xFFFFFF);
+    ms_font_draw_string(NULL, "Current Task Name: ", 10, 90, 0xFFFFFF);
+    if (current_task) {
+        ms_font_draw_string(NULL, current_task->name, 200, 90, 0xFFFFFF);
+    } else {
+        ms_font_draw_string(NULL, "[base kernel]", 200, 90, 0xFFFFFF);
     }
 
     for (;;) {

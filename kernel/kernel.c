@@ -103,7 +103,14 @@ int mk_test_nvme_entry() {
     int y = (720 - BMP_HEIGHT) / 2;
     mk_vbe_draw_image(x, y, BMP_WIDTH, BMP_HEIGHT, flipped);
 
-    while (1);
+    // Test BSOD screen.
+    while (1) {
+        if (mk_keyboard_get_key() == "ESC") {
+            volatile int a = 1;
+            volatile int b = 0;
+            volatile int c = a / b; 
+        }
+    }
 
     return 0;
 }
