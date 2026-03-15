@@ -123,6 +123,25 @@
 #define MK_ETH_MAX_SOCKETS 8
 #define MK_ETH_MAX_TIMEOUT_MS 1000
 
+// * DHCP Constants * //
+
+#define MK_ETH_DHCP_CLIENT_PORT 68
+#define MK_ETH_DHCP_SERVER_PORT 67
+#define MK_ETH_DHCP_MAGIC 0x63825363
+
+#define MK_ETH_DHCP_OP_REQUEST 1
+#define MK_ETH_DHCP_OP_REPLY 2
+#define MK_ETH_DHCP_HTYPE_ETH 1
+#define MK_ETH_DHCP_MSG_DISCOVER 1
+#define MK_ETH_DHCP_MSG_OFFER 2
+
+#define MK_ETH_DHCP_OPT_SUBNET 1
+#define MK_ETH_DHCP_OPT_ROUTER 3
+#define MK_ETH_DHCP_OPT_MSG_TYPE 53
+#define MK_ETH_DHCP_OPT_END 255
+
+#define MK_ETH_DHCP_XID 0x4D495241 // "MIRA"
+
 // Mira Kernel Ethernet IP
 // On little-endian x86, this places octets in wire order.
 #define MK_ETH_IP(m, i, r, a) \
@@ -188,6 +207,33 @@ typedef struct __attribute__((packed)) {
     uint16_t length;
     uint16_t checksum;
 } mk_eth_udp_hdr_t;
+
+// * DHCP * //
+
+typedef struct __attribute__((packed)) {
+    uint8_t op;
+    uint8_t htype;
+    uint8_t hlen;
+    uint8_t hops;
+    uint32_t xid;
+    uint16_t secs;
+    uint16_t flags;
+    uint32_t ciaddr;
+    uint32_t yiaddr;
+    uint32_t siaddr;
+    uint32_t giaddr;
+    uint8_t chaddr[16];
+    uint8_t sname[64];
+    uint8_t file[128];
+    uint32_t magic;
+    uint8_t options[312];
+} mk_eth_dhcp_packet_t;
+
+typedef struct {
+    uint32_t ip;
+    uint32_t gateway;
+    uint32_t subnet;
+} mk_eth_dhcp_cfg_t;
 
 // * ARP Cache Entry * //
 

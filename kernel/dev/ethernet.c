@@ -616,6 +616,196 @@ static int mk_eth_resolve_next_hop(uint32_t dst_ip, uint8_t *mac_out) {
     return mk_eth_arp_resolve(next_hop, mac_out);
 }
 
+// * DHCP * //
+
+// Mira Kernel Ethernet DHCP Discover
+// Broadcasts a DHCP DISCOVER and waits for an OFFER.
+// Parses yiaddr, subnet mask, and router from the response.
+static int mk_eth_dhcp_discover(mk_eth_dhcp_cfg_t *cfg) {
+    // Build DISCOVER (Ethernet + IPv4 + UDP + DHCP).
+
+    uint16_t dhcp_len = sizeof(mk_eth_dhcp_packet_t);
+    uint16_t udp_len = 8 + dhcp_len;
+    uint16_t ip_total = 20 + udp_len;
+    uint16_t frame_len = 14 + ip_total;
+
+    uint16_t cur = eth.tx_cur;
+    uint8_t *buf = eth.tx_bufs[cur];
+
+    mk_memset(buf, 0, frame_len);
+
+    // Ethernet - broadcast destination.
+    mk_eth_frame_hdr_t *fhdr = (mk_eth_frame_hdr_t *)buf;
+    mk_memset(fhdr->dst, 0xFF, 6);
+    mk_memcpy(fhdr->src, eth.mac, 6);
+    fhdr->ethertype = mk_eth_htons(MK_ETH_ETHERTYPE_IPV4);
+
+    // IPv4 - 0.0.0.0 -> 255.255.255.255.
+    mk_eth_ip_hdr_t *iphdr = (mk_eth_ip_hdr_t *)(buf + 14);
+    iphdr->version_ihl = 0x45;
+    iphdr->total_length = mk_eth_htons(ip_total);
+    iphdr->flags_fragment = mk_eth_htons(0x4000);
+    iphdr->ttl = MK_ETH_IP_TTL;
+    iphdr->protocol = MK_ETH_IP_PROTO_UDP;
+    iphdr->src_ip = 0;
+    iphdr->dst_ip = 0xFFFFFFFF;
+    iphdr->checksum = mk_eth_ip_checksum(iphdr, 20);
+
+    // UDP - 68 -> 67.
+    mk_eth_udp_hdr_t *uhdr = (mk_eth_udp_hdr_t *)(buf + 14 + 20);
+    uhdr->src_port = mk_eth_htons(MK_ETH_DHCP_CLIENT_PORT);
+    uhdr->dst_port = mk_eth_htons(MK_ETH_DHCP_SERVER_PORT);
+    uhdr->length = mk_eth_htons(udp_len);
+
+    // DHCP payload.
+    mk_eth_dhcp_packet_t *dhcp = (mk_eth_dhcp_packet_t *)(buf + 14 + 20 + 8);
+    dhcp->op = MK_ETH_DHCP_OP_REQUEST;
+    dhcp->htype = MK_ETH_DHCP_HTYPE_ETH;
+    dhcp->hlen = 6;
+    dhcp->xid = mk_eth_htonl(MK_ETH_DHCP_XID);
+    dhcp->flags = mk_eth_htons(0x8000); // Broadcast.
+    mk_memcpy(dhcp->chaddr, eth.mac, 6);
+    dhcp->magic = mk_eth_htonl(MK_ETH_DHCP_MAGIC);
+
+    // Options - DHCP Message Type = DISCOVER, then END.
+    dhcp->options[0] = MK_ETH_DHCP_OPT_MSG_TYPE;
+    dhcp->options[1] = 1;
+    dhcp->options[2] = MK_ETH_DHCP_MSG_DISCOVER;
+    dhcp->options[3] = MK_ETH_DHCP_OPT_END;
+
+    // Transmit.
+    eth.tx_descs[cur].addr = (uint64_t)(uintptr_t)buf;
+    eth.tx_descs[cur].length = frame_len;
+    eth.tx_descs[cur].cmd = MK_ETH_TDESC_CMD_EOP | MK_ETH_TDESC_CMD_IFCS | MK_ETH_TDESC_CMD_RS;
+    eth.tx_descs[cur].sta = 0;
+
+    eth.tx_cur = (cur + 1) % MK_ETH_TX_DESC_COUNT;
+    mk_eth_write32(MK_ETH_REG_TDT, eth.tx_cur);
+
+    for (int i = 0; i < MK_ETH_MAX_TIMEOUT_MS; i++) {
+        if (eth.tx_descs[cur].sta & MK_ETH_TDESC_STA_DD) [[unlikely]] {
+            break;
+        }
+
+        mk_util_port_delay(1);
+    }
+
+    if (!(eth.tx_descs[cur].sta & MK_ETH_TDESC_STA_DD)) [[unlikely]] {
+        return -1;
+    }
+
+    // Poll RX for the OFFER.
+    for (int t = 0; t < MK_ETH_MAX_TIMEOUT_MS; t++) {
+        uint16_t ri = eth.rx_cur;
+
+        if (!(eth.rx_descs[ri].status & MK_ETH_RDESC_STA_DD)) {
+            mk_util_port_delay(1);
+            continue;
+        }
+
+        uint8_t *rx = eth.rx_bufs[ri];
+        uint16_t rlen = eth.rx_descs[ri].length;
+
+        // Eth(14) + IP(20) + UDP(8) + DHCP header up to magic(240).
+        if (rlen < 14 + 20 + 8 + 240) {
+            eth.rx_descs[ri].status = 0;
+            mk_eth_write32(MK_ETH_REG_RDT, ri);
+            eth.rx_cur = (ri + 1) % MK_ETH_RX_DESC_COUNT;
+
+            continue;
+        }
+
+        mk_eth_frame_hdr_t *rfhdr = (mk_eth_frame_hdr_t *)rx;
+
+        if (mk_eth_ntohs(rfhdr->ethertype) != MK_ETH_ETHERTYPE_IPV4) {
+            eth.rx_descs[ri].status = 0;
+            mk_eth_write32(MK_ETH_REG_RDT, ri);
+            eth.rx_cur = (ri + 1) % MK_ETH_RX_DESC_COUNT;
+
+            continue;
+        }
+
+        mk_eth_ip_hdr_t *riphdr = (mk_eth_ip_hdr_t *)(rx + 14);
+
+        if (riphdr->protocol != MK_ETH_IP_PROTO_UDP) {
+            eth.rx_descs[ri].status = 0;
+            mk_eth_write32(MK_ETH_REG_RDT, ri);
+            eth.rx_cur = (ri + 1) % MK_ETH_RX_DESC_COUNT;
+
+            continue;
+        }
+
+        mk_eth_udp_hdr_t *ruhdr = (mk_eth_udp_hdr_t *)(rx + 14 + 20);
+
+        if (mk_eth_ntohs(ruhdr->dst_port) != MK_ETH_DHCP_CLIENT_PORT) {
+            eth.rx_descs[ri].status = 0;
+            mk_eth_write32(MK_ETH_REG_RDT, ri);
+            eth.rx_cur = (ri + 1) % MK_ETH_RX_DESC_COUNT;
+
+            continue;
+        }
+
+        mk_eth_dhcp_packet_t *offer = (mk_eth_dhcp_packet_t *)(rx + 14 + 20 + 8);
+
+        if (offer->op != MK_ETH_DHCP_OP_REPLY || mk_eth_ntohl(offer->xid) != MK_ETH_DHCP_XID) {
+            eth.rx_descs[ri].status = 0;
+            mk_eth_write32(MK_ETH_REG_RDT, ri);
+            eth.rx_cur = (ri + 1) % MK_ETH_RX_DESC_COUNT;
+
+            continue;
+        }
+
+        // Offered IP.
+        cfg->ip = offer->yiaddr;
+        cfg->gateway = 0;
+        cfg->subnet = 0;
+
+        // Walk options for subnet and router.
+        uint16_t opts_max = rlen - (14 + 20 + 8 + 240);
+        uint16_t o = 0;
+
+        while (o < opts_max) {
+            uint8_t code = offer->options[o];
+
+            if (code == MK_ETH_DHCP_OPT_END) {
+                break;
+            }
+
+            // Skip pad option.
+            if (code == 0) {
+                o++;
+                continue;
+            }
+
+            if (o + 1 >= opts_max) {
+                break;
+            }
+
+            uint8_t olen = offer->options[o + 1];
+
+            if (o + 2 + olen > opts_max) {
+                break;
+            }
+
+            if (code == MK_ETH_DHCP_OPT_SUBNET && olen == 4) {
+                mk_memcpy(&cfg->subnet, &offer->options[o + 2], 4);
+            } else if (code == MK_ETH_DHCP_OPT_ROUTER && olen >= 4) {
+                mk_memcpy(&cfg->gateway, &offer->options[o + 2], 4);
+            }
+
+            o += 2 + olen;
+        }
+
+        eth.rx_descs[ri].status = 0;
+        mk_eth_write32(MK_ETH_REG_RDT, ri);
+        eth.rx_cur = (ri + 1) % MK_ETH_RX_DESC_COUNT;
+
+        return 0;
+    }
+
+    return -1;
+}
+
 // * Public API * //
 
 // Mira Kernel Ethernet Init
@@ -654,12 +844,6 @@ int mk_eth_init(void) {
 
     mk_eth_read_mac();
 
-    // QEMU static network configuration.
-    // A TODO is to get this using DHCP.
-    eth.ip = MK_ETH_IP(10, 0, 2, 15);
-    eth.gateway = MK_ETH_IP(10, 0, 2, 2);
-    eth.subnet = MK_ETH_IP(255, 255, 255, 0);
-    
     eth.next_ephemeral_port = 49152;
 
     if (mk_eth_rx_init() < 0 || mk_eth_tx_init() < 0) [[unlikely]] {
@@ -667,6 +851,17 @@ int mk_eth_init(void) {
     }
 
     if (mk_eth_link_up() < 0) [[unlikely]] {
+        return -1;
+    }
+
+    mk_eth_dhcp_cfg_t dhcp_cfg;
+
+    // Get network config via DHCP.
+    if (mk_eth_dhcp_discover(&dhcp_cfg) == 0) [[likely]] {
+        eth.ip = dhcp_cfg.ip;
+        eth.gateway = dhcp_cfg.gateway;
+        eth.subnet = dhcp_cfg.subnet;
+    } else [[unlikely]] {
         return -1;
     }
 
